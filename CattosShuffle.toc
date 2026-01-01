@@ -1,0 +1,14 @@
+## Interface: 11503
+## Title: |cffffcc00Cattos|r|cff00ff00Shuffle|r
+## Notes: Equipment & Bag Roulette for Hardcore WoW
+## Author: Catto
+## Version: 1.0.0
+## SavedVariables: CattosShuffleDB
+## DefaultState: enabled
+
+Localization.lua
+CattosShuffle.lua
+UI.lua
+Algorithms.lua
+Options.lua
+MinimapButton.lua
