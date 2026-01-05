@@ -15,35 +15,35 @@ local TIER_INFO = {
         name = "C Tier",
         color = {r=0.5, g=0.5, b=0.5},
         hex = "ff808080",
-        weight = 70,  -- 70% base chance
+        weight = 72,  -- 72% base chance (increased to compensate)
         description = "Junk & Non-Equipable Items"
     },
     ["B"] = {
         name = "B Tier",
         color = {r=0.6, g=0.8, b=1.0},
         hex = "ff99ccff",
-        weight = 20,  -- 20% base chance
+        weight = 20,  -- 20% base chance (unchanged)
         description = "Quest Items & Consumables"
     },
     ["A"] = {
         name = "A Tier",
         color = {r=0.6, g=0.2, b=0.8},
         hex = "ff9933cc",
-        weight = 8,   -- 8% base chance
+        weight = 7,   -- 7% base chance (slightly decreased)
         description = "Equipable Gear (Not Worn)"
     },
     ["S"] = {
         name = "S Tier",
         color = {r=1.0, g=0.84, b=0},
         hex = "ffffd700",
-        weight = 2,   -- 2% base chance
+        weight = 0.8,   -- 0.8% base chance (reduced for shard balance)
         description = "Currently Equipped Items"
     },
     ["SS"] = {
         name = "SS Tier",
         color = {r=1.0, g=0.5, b=0},
         hex = "ffff8000",
-        weight = 0.5, -- 0.5% base chance (ULTRA RARE)
+        weight = 0.2, -- 0.2% base chance (ULTRA RARE, reduced for shard balance)
         description = "Epic/Legendary Equipped"
     }
 }
