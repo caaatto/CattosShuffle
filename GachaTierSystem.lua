@@ -350,6 +350,8 @@ function Gacha:Pull10Fast()
     end
 
     print("|cffffcc00Processing x10 pull...|r")
+    print(string.format("|cffccccccStarting counters - Spins: %d/%d, B-Tier: %d/%d|r",
+        self.spinCount, self.pityThreshold, self.bTierPityCount, self.bTierPityThreshold))
 
     local results = {
         matches = {}  -- Store which pulls had matches
@@ -366,12 +368,16 @@ function Gacha:Pull10Fast()
         -- Check pity systems for this pull
         local forcedPityTier = nil
 
+        -- Check if we've passed the 50-spin threshold (not just equal)
         if self.spinCount >= self.pityThreshold then
             forcedPityTier = math.random() < 0.5 and "S" or "A"
-            print(string.format("|cffffcc00Pull %d: 50-SPIN PITY! Forcing %s tier triple!|r", pullNum, forcedPityTier))
+            print(string.format("|cffffcc00Pull %d: 50-SPIN PITY ACTIVE! (Spin %d) Forcing %s tier triple!|r",
+                pullNum, self.spinCount, forcedPityTier))
+        -- Check B-tier pity (only if main pity isn't active)
         elseif self.bTierPityCount >= self.bTierPityThreshold then
             forcedPityTier = "B"
-            print(string.format("|cff99ccffPull %d: B-TIER PITY! Forcing B tier triple!|r", pullNum))
+            print(string.format("|cff99ccffPull %d: B-TIER PITY! (Count %d) Forcing B tier triple!|r",
+                pullNum, self.bTierPityCount))
         end
 
         -- Get 3 random tiers/items for this pull
