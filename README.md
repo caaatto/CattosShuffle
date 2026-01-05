@@ -66,9 +66,11 @@ The addon automatically detects your game client language.
 
 ### Method 1: Direct Download
 1. Download the latest release from [GitHub Releases](https://github.com/caaatto/CattosShuffle/releases)
-2. Extract to: `World of Warcraft\_classic_era_\Interface\AddOns\`
-3. Folder structure should be: `..\AddOns\CattosShuffle\CattosShuffle.toc`
-4. Restart WoW or type `/reload`
+2. Extract the ZIP file
+3. **IMPORTANT**: Rename the folder from `CattosShuffle-main` or `CattosShuffle-2.1.0` to just `CattosShuffle`
+4. Move the `CattosShuffle` folder to: `World of Warcraft\_classic_era_\Interface\AddOns\`
+5. Final path should be: `..\AddOns\CattosShuffle\CattosShuffle.toc`
+6. Restart WoW or type `/reload`
 
 ### Method 2: Git Clone
 ```bash
@@ -133,7 +135,16 @@ This addon is provided as-is for entertainment purposes. Use at your own risk. T
 
 ## Version History
 
-### v2.0.0 (Current)
+### v2.1.0 (Current)
+- x10 pull system with instant results display
+- Improved pity system (B-tier every 10, main at 50)
+- Fixed equipped items tier detection
+- Multi-language support for item types
+- Balanced S/SS tier rates (75 pulls for 3 shards)
+- Better UI layout and tooltips
+- Bug fixes and performance improvements
+
+### v2.0.0
 - Added complete Gacha system with tier mechanics
 - Implemented Russian Roulette slot machine
 - Triple pity system for fair gameplay
