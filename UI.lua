@@ -54,6 +54,33 @@ function CattosShuffle:InitializeUI()
     -- Action Buttons
     self:CreateActionButtons()
 
+    -- Gacha Button (golden gacha style!)
+    local gachaButton = CreateFrame("Button", nil, self.frame, "GameMenuButtonTemplate")
+    gachaButton:SetSize(140, 35)
+    gachaButton:SetPoint("TOP", self.frame, "TOP", 0, -45)
+    gachaButton:SetText("|cffffcc00[ GACHA ]|r")
+    gachaButton:SetNormalFontObject("GameFontNormalLarge")
+    gachaButton:SetHighlightFontObject("GameFontHighlightLarge")
+    gachaButton:SetScript("OnClick", function()
+        self.frame:Hide()
+        if self.Gacha then
+            self.Gacha:Toggle()
+        end
+    end)
+
+    -- Add tooltip
+    gachaButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText("|cffffcc00GACHA PULL SYSTEM|r", 1, 1, 1)
+        GameTooltip:AddLine("Pull 3 items from your inventory!", 1, 0.8, 0.8)
+        GameTooltip:AddLine("C > B > A > S > SS Tiers", 0.8, 0.8, 1)
+        GameTooltip:AddLine("3x Match = DELETE one item!", 1, 0, 0)
+        GameTooltip:Show()
+    end)
+    gachaButton:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
     -- Initialize visibility
     self.frame:Hide()
 

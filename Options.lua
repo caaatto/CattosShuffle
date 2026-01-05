@@ -28,54 +28,18 @@ function CattosShuffle:CreateOptionsPanel()
     supportText:SetPoint("TOPLEFT", author, "BOTTOMLEFT", 0, -8)
     supportText:SetText(L["SUPPORT_DEVELOPMENT"])
 
-    -- Ko-fi link (selectable and copyable)
-    local kofiLinkBG = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-    kofiLinkBG:SetSize(250, 24)
-    kofiLinkBG:SetPoint("TOPLEFT", supportText, "BOTTOMLEFT", 0, -5)
-    kofiLinkBG:SetBackdrop({
-        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 8,
-        insets = { left = 2, right = 2, top = 2, bottom = 2 }
-    })
-    kofiLinkBG:SetBackdropColor(0, 0.2, 0, 0.3)
-    kofiLinkBG:SetBackdropBorderColor(0, 1, 0, 0.5)
-
-    local kofiLink = CreateFrame("EditBox", nil, kofiLinkBG)
-    kofiLink:SetFontObject("GameFontHighlight")
-    kofiLink:SetText("https://ko-fi.com/kay_catto")
-    kofiLink:SetTextColor(0, 1, 0, 1)
-    kofiLink:SetWidth(240)
-    kofiLink:SetHeight(20)
-    kofiLink:SetPoint("CENTER", kofiLinkBG, "CENTER", 0, 0)
-    kofiLink:SetAutoFocus(false)
-    kofiLink:EnableMouse(true)
-    kofiLink:SetScript("OnMouseUp", function(self)
-        self:SetFocus()
-        self:HighlightText()
-    end)
-    kofiLink:SetScript("OnEditFocusLost", function(self)
-        self:HighlightText(0, 0)
-    end)
-    kofiLink:SetScript("OnEscapePressed", function(self)
-        self:ClearFocus()
-    end)
-    kofiLink:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then
-            -- Reset text if user tries to change it
-            self:SetText("https://ko-fi.com/kay_catto")
-            self:HighlightText()
-        end
-    end)
-    kofiLink:SetScript("OnChar", function(self, text)
-        -- Prevent typing
-        self:SetText("https://ko-fi.com/kay_catto")
-        self:HighlightText()
+    -- Ko-fi Button (opens a dialog)
+    local kofiButton = CreateFrame("Button", nil, panel, "GameMenuButtonTemplate")
+    kofiButton:SetSize(150, 25)
+    kofiButton:SetPoint("TOPLEFT", supportText, "BOTTOMLEFT", 0, -5)
+    kofiButton:SetText("|cff00ff00Support on Ko-fi|r")
+    kofiButton:SetScript("OnClick", function()
+        CattosShuffle:ShowKofiDialog()
     end)
 
     -- Sound Theme Section
     local soundThemeLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    soundThemeLabel:SetPoint("TOPLEFT", kofiLinkBG, "BOTTOMLEFT", 0, -30)
+    soundThemeLabel:SetPoint("TOPLEFT", kofiButton, "BOTTOMLEFT", 0, -30)
     soundThemeLabel:SetText(L["SOUND_THEME"])
 
     local soundThemeDesc = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -164,9 +128,52 @@ function CattosShuffle:CreateOptionsPanel()
         end
     end)
 
+    -- Gacha Settings Section
+    local gachaLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    gachaLabel:SetPoint("TOPLEFT", minimapCheckbox, "BOTTOMLEFT", 0, -30)
+    gachaLabel:SetText("|cffffcc00Gacha Settings|r")
+
+    -- Gacha Reset Button
+    local gachaResetButton = CreateFrame("Button", nil, panel, "GameMenuButtonTemplate")
+    gachaResetButton:SetSize(150, 25)
+    gachaResetButton:SetPoint("TOPLEFT", gachaLabel, "BOTTOMLEFT", 0, -10)
+    gachaResetButton:SetText("Reset Pity Counters")
+    gachaResetButton:SetScript("OnClick", function()
+        -- Reset all pity counters
+        if CattosShuffle.Gacha then
+            CattosShuffle.Gacha.spinCount = 0
+            CattosShuffle.Gacha.bTierPityCount = 0
+            CattosShuffle.Gacha.shards = 0
+            CattosShuffleDB.gachaSpinCount = 0
+            CattosShuffleDB.gachaBTierPityCount = 0
+            CattosShuffleDB.gachaShards = 0
+            print("|cff00ff00All Gacha pity counters have been reset!|r")
+        end
+    end)
+
+    -- Gacha Quick Access
+    local gachaOpenButton = CreateFrame("Button", nil, panel, "GameMenuButtonTemplate")
+    gachaOpenButton:SetSize(150, 25)
+    gachaOpenButton:SetPoint("LEFT", gachaResetButton, "RIGHT", 10, 0)
+    gachaOpenButton:SetText("Open Gacha")
+    gachaOpenButton:SetScript("OnClick", function()
+        if CattosShuffle.Gacha then
+            -- Close the options frame (try different frame names for compatibility)
+            if InterfaceOptionsFrame then
+                InterfaceOptionsFrame:Hide()
+            elseif SettingsPanel then
+                SettingsPanel:Hide()
+            elseif InterfaceAddOnsList then
+                InterfaceAddOnsList:Hide()
+                InterfaceAddOnsList:GetParent():Hide()
+            end
+            CattosShuffle.Gacha:Toggle()
+        end
+    end)
+
     -- Instructions
     local instructions = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    instructions:SetPoint("TOPLEFT", minimapCheckbox, "BOTTOMLEFT", 0, -30)
+    instructions:SetPoint("TOPLEFT", gachaResetButton, "BOTTOMLEFT", 0, -30)
     instructions:SetText(L["COMMANDS"])
 
     local commandList = {
@@ -233,6 +240,97 @@ function CattosShuffle:CreateOptionsPanel()
 
     -- Store reference
     CattosShuffle.optionsPanel = panel
+end
+
+-- Ko-fi Link Dialog
+function CattosShuffle:ShowKofiDialog()
+    -- Create the dialog if it doesn't exist
+    if not self.kofiDialog then
+        local dialog = CreateFrame("Frame", "CattosKofiDialog", UIParent, "BasicFrameTemplate")
+        dialog:SetSize(400, 200)
+        dialog:SetPoint("CENTER")
+        dialog:SetMovable(true)
+        dialog:EnableMouse(true)
+        dialog:RegisterForDrag("LeftButton")
+        dialog:SetScript("OnDragStart", dialog.StartMoving)
+        dialog:SetScript("OnDragStop", dialog.StopMovingOrSizing)
+        dialog:SetFrameStrata("DIALOG")
+        dialog:Hide()
+
+        -- Add to ESC close list
+        tinsert(UISpecialFrames, "CattosKofiDialog")
+
+        -- Title
+        local title = dialog:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        title:SetPoint("TOP", dialog, "TOP", 0, -35)
+        title:SetText("|cff00ff00Support CattosShuffle|r")
+
+        -- Warning text
+        local warning = dialog:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        warning:SetPoint("TOP", title, "BOTTOM", 0, -15)
+        warning:SetWidth(350)
+        warning:SetText("|cffff8800This will open a page outside of World of Warcraft.|r\n|cffccccccCopy the link below and paste it in your browser:|r")
+        warning:SetJustifyH("CENTER")
+
+        -- Create copyable link box
+        local linkBG = CreateFrame("Frame", nil, dialog, "BackdropTemplate")
+        linkBG:SetSize(350, 30)
+        linkBG:SetPoint("CENTER", dialog, "CENTER", 0, -10)
+        linkBG:SetBackdrop({
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
+            tile = false, edgeSize = 16,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
+        })
+        linkBG:SetBackdropColor(0, 0.1, 0, 0.8)
+        linkBG:SetBackdropBorderColor(0, 1, 0, 1)
+
+        -- EditBox for the link
+        local linkBox = CreateFrame("EditBox", nil, linkBG)
+        linkBox:SetFontObject("GameFontHighlightLarge")
+        linkBox:SetText("https://ko-fi.com/kay_catto")
+        linkBox:SetTextColor(0, 1, 0, 1)
+        linkBox:SetWidth(340)
+        linkBox:SetHeight(30)
+        linkBox:SetPoint("CENTER", linkBG, "CENTER", 0, 0)
+        linkBox:SetAutoFocus(false)
+        linkBox:EnableMouse(true)
+
+        linkBox:SetScript("OnMouseUp", function(self)
+            self:SetFocus()
+            self:HighlightText()
+        end)
+
+        linkBox:SetScript("OnEditFocusGained", function(self)
+            self:HighlightText()
+        end)
+
+        linkBox:SetScript("OnEditFocusLost", function(self)
+            self:HighlightText(0, 0)
+        end)
+
+        linkBox:SetScript("OnEscapePressed", function(self)
+            self:ClearFocus()
+            dialog:Hide()
+        end)
+
+        -- Prevent editing
+        linkBox:SetScript("OnTextChanged", function(self, userInput)
+            if userInput then
+                self:SetText("https://ko-fi.com/kay_catto")
+                self:HighlightText()
+            end
+        end)
+
+        -- Instructions
+        local instructions = dialog:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        instructions:SetPoint("BOTTOM", dialog, "BOTTOM", 0, 40)
+        instructions:SetText("|cffccccccClick the link above to select it, then Ctrl+C to copy|r")
+
+        self.kofiDialog = dialog
+    end
+
+    self.kofiDialog:Show()
 end
 
 -- Initialize options panel when addon loads

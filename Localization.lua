@@ -45,6 +45,17 @@ local strings = {
     ["ACTION_BAG_DELETE"] = "Delete bag + contents",
     ["ACTION_CHOICE"] = "Free choice (no RNG)",
 
+    -- Russian Roulette
+    ["RR_SPINNING"] = "Russian Roulette Slots spinning...",
+    ["RR_THREE_MATCH"] = "THREE %s! JACKPOT!",
+    ["RR_DELETING"] = "DELETING: %s",
+    ["RR_LUCKY"] = "LUCKY! You don't have any %s items!",
+    ["RR_SAFE"] = "SAFE! No matching qualities!",
+    ["RR_DELETE_CONFIRM"] = "Russian Roulette will DELETE:\n\n%s\n\nThis cannot be undone!",
+    ["RR_CANCELLED"] = "Russian Roulette cancelled - item saved!",
+    ["RR_DELETED"] = "DELETED %s from %s!",
+    ["RR_NO_ITEMS"] = "No items found in inventory or equipment!",
+
     -- UI Elements
     ["EQUIPMENT"] = "Equipment",
     ["BAGS"] = "Bags",
@@ -114,6 +125,39 @@ local strings = {
     ["SECOND_SPIN_FOR_DELETE"] = "Selecting bag to delete...",
     ["NO_OTHER_BAGS"] = "No other bags equipped to delete!",
     ["BAG_WILL_BE_DELETED"] = "Will be deleted!",
+
+    -- Gacha System
+    ["GACHA_HELP_TITLE"] = "|cffffcc00GACHA HELP|r",
+    ["GACHA_WHAT_IS"] = "|cffffcc00WHAT IS GACHA?|r",
+    ["GACHA_WHAT_IS_DESC"] = "Gacha is like a slot machine with 3 reels. Each reel shows a tier. If all 3 match, you must delete an item!",
+    ["GACHA_HOW_WORKS"] = "|cffffcc00HOW IT WORKS:|r",
+    ["GACHA_HOW_WORKS_DESC"] = "1. Click [ PULL x3 ] to start\n2. The 3 reels spin\n3. Each reel stops one by one\n4. If all 3 match = Delete item!\n5. If no match = Everything safe!",
+    ["GACHA_TIERS"] = "|cffffcc00THE TIER SYSTEM:|r",
+    ["GACHA_TIER_SS"] = "|cffff8000SS|r = Epic/Legendary Equipped (ultra rare!)",
+    ["GACHA_TIER_S"] = "|cffffd700S|r = Currently Equipped Items",
+    ["GACHA_TIER_A"] = "|cff9933ccA|r = Equipment in Bags",
+    ["GACHA_TIER_B"] = "|cff99ccffB|r = Quest Items & Consumables",
+    ["GACHA_TIER_C"] = "|cff808080C|r = Junk & Misc Items",
+    ["GACHA_RULES"] = "|cffffcc00IMPORTANT RULES:|r",
+    ["GACHA_RULES_DESC"] = "- More items in a tier = higher chance\n- Few items in a tier = very low chance\n- Same item can appear multiple times!\n- On triple match, ONE random item deleted",
+    ["GACHA_EXAMPLE"] = "|cffffcc00EXAMPLE:|r",
+    ["GACHA_EXAMPLE_DESC"] = "You have 100 gray items (C) and 1 Epic (SS).\n- C Tier has high chance (many items)\n- SS Tier has tiny chance (only 1 item)\n- 3x SS is almost impossible, but if = Epic gone!",
+    ["GACHA_PITY_TITLE"] = "|cffffcc00PITY SYSTEMS:|r",
+    ["GACHA_PITY_SHARDS"] = "1. |cff9966ffShards|r: Roll S or SS without match = get 1 shard. At 3 shards, switch to Shuffle!",
+    ["GACHA_PITY_BTIER"] = "2. |cff99ccffB-Tier Pity|r: Every 10 rolls = guaranteed B-Tier triple!",
+    ["GACHA_PITY_MAIN"] = "3. |cffff880050-Spin Pity|r: After 50 spins = guaranteed S or A tier triple!",
+    ["GACHA_DELETION"] = "|cffffcc00DELETION PROCESS:|r",
+    ["GACHA_DELETION_DESC"] = "- For stackable items: Random amount deleted\n- Manual deletion required (drag out of bag)\n- Numbers show how many to delete\n- Items stay marked until next pull",
+    ["GACHA_COMMANDS"] = "|cffffcc00COMMANDS:|r",
+    ["GACHA_CMD_OPEN"] = "|cff00ff00/ccg|r = Open Gacha directly",
+    ["GACHA_CMD_HELP"] = "|cff00ff00Help|r = Show this help",
+    ["GACHA_CMD_LEGEND"] = "|cff00ff00Legend|r = Show tier explanation",
+    ["GACHA_CMD_ITEMS"] = "|cff00ff00Items|r = View all items by tier",
+    ["GACHA_TIPS"] = "|cffffcc00TIPS:|r",
+    ["GACHA_TIPS_DESC"] = "- Check 'Items' first to see what you have\n- Items with few pieces are safer\n- ESC closes windows\n- Auto-closes in combat\n- After 10 pulls comes B-Tier match!",
+    ["GACHA_WARNING"] = "|cffff0000WARNING:|r",
+    ["GACHA_WARNING_DESC"] = "Deleted items are GONE FOREVER!\nThere is NO undo!",
+    ["GACHA_GOOD_LUCK"] = "|cff00ff00Good Luck!|r",
 }
 
 -- German localization
@@ -209,6 +253,39 @@ if locale == "deDE" then
     strings["SECOND_SPIN_FOR_DELETE"] = "Wähle Tasche zum Löschen..."
     strings["NO_OTHER_BAGS"] = "Keine anderen Taschen zum Löschen ausgerüstet!"
     strings["BAG_WILL_BE_DELETED"] = "Wird gelöscht!"
+
+    -- Gacha German translations
+    strings["GACHA_HELP_TITLE"] = "|cffffcc00GACHA HILFE|r"
+    strings["GACHA_WHAT_IS"] = "|cffffcc00WAS IST GACHA?|r"
+    strings["GACHA_WHAT_IS_DESC"] = "Gacha ist wie ein Spielautomat mit 3 Walzen. Jede Walze zeigt eine Stufe. Wenn alle 3 gleich sind, musst du ein Item löschen!"
+    strings["GACHA_HOW_WORKS"] = "|cffffcc00WIE FUNKTIONIERT ES?|r"
+    strings["GACHA_HOW_WORKS_DESC"] = "1. Klicke [ PULL x3 ] zum Starten\n2. Die 3 Walzen drehen sich\n3. Jede Walze stoppt nacheinander\n4. Alle 3 gleich = Item löschen!\n5. Kein Match = Alles sicher!"
+    strings["GACHA_TIERS"] = "|cffffcc00DAS STUFEN-SYSTEM:|r"
+    strings["GACHA_TIER_SS"] = "|cffff8000SS|r = Episch/Legendär Ausgerüstet (ultra selten!)"
+    strings["GACHA_TIER_S"] = "|cffffd700S|r = Aktuell Ausgerüstete Items"
+    strings["GACHA_TIER_A"] = "|cff9933ccA|r = Ausrüstung in Taschen"
+    strings["GACHA_TIER_B"] = "|cff99ccffB|r = Quest-Items & Verbrauchbares"
+    strings["GACHA_TIER_C"] = "|cff808080C|r = Müll & Sonstige Items"
+    strings["GACHA_RULES"] = "|cffffcc00WICHTIGE REGELN:|r"
+    strings["GACHA_RULES_DESC"] = "- Mehr Items einer Stufe = höhere Chance\n- Wenige Items einer Stufe = sehr niedrige Chance\n- Gleiches Item kann mehrfach erscheinen!\n- Bei Triple: EIN zufälliges Item gelöscht"
+    strings["GACHA_EXAMPLE"] = "|cffffcc00BEISPIEL:|r"
+    strings["GACHA_EXAMPLE_DESC"] = "Du hast 100 graue Items (C) und 1 Epic (SS).\n- C Stufe hat hohe Chance (viele Items)\n- SS Stufe hat winzige Chance (nur 1 Item)\n- 3x SS ist fast unmöglich, aber wenn = Epic weg!"
+    strings["GACHA_PITY_TITLE"] = "|cffffcc00MITLEIDS-SYSTEME:|r"
+    strings["GACHA_PITY_SHARDS"] = "1. |cff9966ffScherben|r: S oder SS ohne Match = 1 Scherbe. Bei 3 Scherben: Wechsel zu Shuffle!"
+    strings["GACHA_PITY_BTIER"] = "2. |cff99ccffB-Stufe Mitleid|r: Alle 10 Züge = garantiertes B-Stufe Triple!"
+    strings["GACHA_PITY_MAIN"] = "3. |cffff880050-Spin Mitleid|r: Nach 50 Spins = garantiertes S oder A Stufe Triple!"
+    strings["GACHA_DELETION"] = "|cffffcc00LÖSCH-PROZESS:|r"
+    strings["GACHA_DELETION_DESC"] = "- Bei stapelbaren Items: Zufällige Anzahl gelöscht\n- Manuelles Löschen erforderlich (aus Tasche ziehen)\n- Zahlen zeigen wie viele zu löschen sind\n- Items bleiben markiert bis zum nächsten Zug"
+    strings["GACHA_COMMANDS"] = "|cffffcc00BEFEHLE:|r"
+    strings["GACHA_CMD_OPEN"] = "|cff00ff00/ccg|r = Öffne Gacha direkt"
+    strings["GACHA_CMD_HELP"] = "|cff00ff00Hilfe|r = Zeige diese Hilfe"
+    strings["GACHA_CMD_LEGEND"] = "|cff00ff00Legende|r = Zeige Stufen-Erklärung"
+    strings["GACHA_CMD_ITEMS"] = "|cff00ff00Items|r = Zeige alle Items nach Stufe"
+    strings["GACHA_TIPS"] = "|cffffcc00TIPPS:|r"
+    strings["GACHA_TIPS_DESC"] = "- Prüfe 'Items' zuerst um zu sehen was du hast\n- Items mit wenigen Stücken sind sicherer\n- ESC schließt Fenster\n- Schließt automatisch im Kampf\n- Nach 10 Zügen kommt B-Stufe Match!"
+    strings["GACHA_WARNING"] = "|cffff0000WARNUNG:|r"
+    strings["GACHA_WARNING_DESC"] = "Gelöschte Items sind FÜR IMMER weg!\nEs gibt KEIN Rückgängigmachen!"
+    strings["GACHA_GOOD_LUCK"] = "|cff00ff00Viel Glück!|r"
 end
 
 -- Create metatable for easy access

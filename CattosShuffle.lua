@@ -108,6 +108,16 @@ function CattosShuffle:Initialize()
         self:InitializeUI()
     end
 
+    -- Initialize Russian Roulette module
+    if self.RussianRoulette and self.RussianRoulette.Initialize then
+        self.RussianRoulette:Initialize()
+    end
+
+    -- Initialize Gacha module
+    if self.Gacha and self.Gacha.Initialize then
+        self.Gacha:Initialize()
+    end
+
     print(L["ADDON_LOADED"])
 end
 
@@ -547,6 +557,17 @@ SLASH_CATTOS1 = "/cattos"
 SLASH_CATTOS2 = "/casino"
 SLASH_CATTOS3 = "/cc"
 
+-- Gacha specific command
+SLASH_CATTOSGACHA1 = "/ccg"
+
+SlashCmdList["CATTOSGACHA"] = function(msg)
+    if CattosShuffle.Gacha then
+        CattosShuffle.Gacha:Toggle()
+    else
+        print("|cffff0000Gacha module not loaded!|r")
+    end
+end
+
 SlashCmdList["CATTOS"] = function(msg)
     local cmd = msg:lower():trim()
 
@@ -560,8 +581,17 @@ SlashCmdList["CATTOS"] = function(msg)
         CattosShuffle:StartSpin("bags", "bag-delete")
     elseif cmd == "choice" or cmd == "free" then
         CattosShuffle:HandleFreeChoice()
+    elseif cmd == "gacha" or cmd == "pull" then
+        if CattosShuffle.Gacha then
+            CattosShuffle.Gacha:Toggle()
+        end
+    elseif cmd == "roulette" or cmd == "rr" or cmd == "slots" then
+        CattosShuffle.RussianRoulette:Toggle()
     elseif cmd == "stop" then
         CattosShuffle:StopSpin()
+        if CattosShuffle.RussianRoulette then
+            CattosShuffle.RussianRoulette:StopSpin()
+        end
     elseif cmd:match("^sound") then
         local theme = cmd:match("^sound%s+(%S+)")
         if theme then
@@ -590,6 +620,8 @@ SlashCmdList["CATTOS"] = function(msg)
         print("  " .. L["CMD_SHEET"])
         print("  " .. L["CMD_DELETE"])
         print("  " .. L["CMD_CHOICE"])
+        print("  |cffffcc00/cattos gacha|r - Open Gacha Pull System")
+        print("  |cffff0000/cattos roulette|r - Open Russian Roulette slots")
         print("  " .. L["HELP_STOP"])
         print("  " .. L["HELP_SOUND"])
     end
