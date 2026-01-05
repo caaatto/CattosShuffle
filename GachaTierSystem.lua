@@ -401,11 +401,25 @@ function Gacha:Pull10Fast()
 
         local hasMatch = (tier1 == tier2 and tier2 == tier3)
 
-        -- Prepare result data
+        -- Find the best tier rolled (SS > S > A > B > C)
+        local bestTier = tier1
+        local bestItem = pullResult.items[1]
+        local tierOrder = { SS = 5, S = 4, A = 3, B = 2, C = 1 }
+
+        for i = 1, 3 do
+            local currentTier = pullResult.tiers[i]
+            if tierOrder[currentTier] > tierOrder[bestTier] then
+                bestTier = currentTier
+                bestItem = pullResult.items[i]
+            end
+        end
+
+        -- Prepare result data - show the best tier/item from this pull
         results[pullNum] = {
-            tier = tier1,  -- For display purposes, use first tier
-            item = pullResult.items[1],
-            shouldDelete = false
+            tier = bestTier,  -- Show the best tier rolled
+            item = bestItem,  -- Show the item from best tier
+            shouldDelete = false,
+            allTiers = string.format("%s-%s-%s", tier1, tier2, tier3)  -- Store all tiers for debug
         }
 
         if hasMatch then
@@ -425,20 +439,20 @@ function Gacha:Pull10Fast()
             -- Choose random item from the matched tier for deletion
             local victim = pullResult.items[math.random(1, 3)]
 
-            -- Set the actual results for display (show all 3 matching)
-            for i = 1, 3 do
-                local resultIndex = pullNum + (i - 1) * 0.1  -- Create sub-indices for display
-                if i == 1 then
-                    results[pullNum] = {
-                        tier = tier1,
-                        item = victim,
-                        shouldDelete = true
-                    }
-                end
-            end
+            -- Override the result to mark it for deletion
+            results[pullNum] = {
+                tier = tier1,  -- All 3 match, so tier1 = tier2 = tier3
+                item = victim,
+                shouldDelete = true,
+                allTiers = string.format("%s-%s-%s", tier1, tier2, tier3)
+            }
 
             print(string.format("|cffff0000Pull %d: MATCH! %s-%s-%s|r", pullNum, tier1, tier2, tier3))
         else
+            -- Debug output for non-matches showing best tier
+            if bestTier == "S" or bestTier == "SS" then
+                print(string.format("|cffffd700Pull %d: %s-%s-%s (Best: %s)|r", pullNum, tier1, tier2, tier3, bestTier))
+            end
             -- Handle shards for S/SS without match
             if (tier1 == "S" or tier1 == "SS") or
                (tier2 == "S" or tier2 == "SS") or
