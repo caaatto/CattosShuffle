@@ -1,11 +1,11 @@
-# CattosShuffle 🎰
+# CattosShuffle
 
 A high-stakes RNG addon for World of Warcraft Classic Era (1.15.3) that adds excitement and risk to your hardcore adventures through various gambling mechanics.
 
-## ⚠️ WARNING
+## WARNING
 This addon will **PERMANENTLY DELETE** items from your inventory! There is **NO UNDO**! Use at your own risk!
 
-## 🎲 Features
+## Features
 
 ### Main Shuffle System
 - **Equipment Roulette**: Risk your equipped items with various animation styles
@@ -14,7 +14,7 @@ This addon will **PERMANENTLY DELETE** items from your inventory! There is **NO 
 - **Multiple Animation Styles**: Normal, reverse, fakeout, yoyo, kitt, and more
 - **Sound Themes**: Custom casino-style sound effects (Trute theme)
 
-### 🎰 Gacha System (NEW!)
+### Gacha System (NEW!)
 A three-reel slot machine where matching all three tiers forces item deletion:
 
 #### Tier System
@@ -29,12 +29,12 @@ A three-reel slot machine where matching all three tiers forces item deletion:
 2. **B-Tier Pity**: Guaranteed B-Tier triple every 10 rolls
 3. **50-Spin Pity**: Guaranteed S or A tier triple after 50 spins
 
-### 🎯 Russian Roulette Slots
+### Russian Roulette Slots
 - Three-slot machine matching item qualities (Poor, Common, Uncommon, Rare, Epic, Legendary)
 - Match three qualities = delete one random item of that quality
 - Visual spinning animation with dramatic reveals
 
-## 📝 Commands
+## Commands
 
 ### Basic Commands
 - `/cattos` or `/cc` - Open main UI
@@ -55,14 +55,14 @@ A three-reel slot machine where matching all three tiers forces item deletion:
 - `/cattos sound [theme]` - Change sound theme (trute/default)
 - Access full settings via: ESC → Interface → AddOns → CattosShuffle
 
-## 🌍 Localization
+## Localization
 Fully localized in:
 - **English** (default)
 - **German** (deDE)
 
 The addon automatically detects your game client language.
 
-## 💻 Installation
+## Installation
 
 ### Method 1: Direct Download
 1. Download the latest release from [GitHub Releases](https://github.com/caaatto/CattosShuffle/releases)
@@ -76,7 +76,7 @@ cd "World of Warcraft\_classic_era_\Interface\AddOns"
 git clone https://github.com/caaatto/CattosShuffle.git
 ```
 
-## 🎮 Usage
+## Usage
 
 ### Gacha System
 1. Open with `/ccg` or through main menu
@@ -99,7 +99,7 @@ git clone https://github.com/caaatto/CattosShuffle.git
 - ESC key closes all addon windows
 - Windows auto-close during combat
 
-## ⚙️ Settings
+## Settings
 Access through **Interface → AddOns → CattosShuffle**:
 - Sound theme selection
 - Auto-mode toggle
@@ -107,7 +107,7 @@ Access through **Interface → AddOns → CattosShuffle**:
 - Gacha pity counter reset
 - Quick access buttons
 
-## 🆘 Support & Feedback
+## Support & Feedback
 
 ### Bug Reports
 Please report issues at: [GitHub Issues](https://github.com/caaatto/CattosShuffle/issues)
@@ -117,21 +117,21 @@ If you enjoy the addon, consider supporting:
 - Ko-fi: [ko-fi.com/kay_catto](https://ko-fi.com/kay_catto)
 - Access link through addon settings
 
-## 📋 Requirements
+## Requirements
 - World of Warcraft Classic Era (1.15.3)
 - No additional libraries required
 
-## 🔒 Safety Features
+## Safety Features
 - Cannot be used in combat
 - Manual deletion confirmation required
 - Visual indicators for items to delete
 - ESC key panic close
 - Protected items cannot be auto-deleted
 
-## 📜 License
+## License
 This addon is provided as-is for entertainment purposes. Use at your own risk. The author is not responsible for any lost items or progress.
 
-## 🎯 Version History
+## Version History
 
 ### v2.0.0 (Current)
 - Added complete Gacha system with tier mechanics

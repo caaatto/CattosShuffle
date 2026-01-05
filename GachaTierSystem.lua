@@ -1002,15 +1002,16 @@ function Gacha:AnimateVictimSelection()
 
                             -- Show "1" as a badge for consistency
                             if slot then
+                                local parent = slot.iconButton or slot
                                 if not slot.countDisplay then
-                                    slot.countDisplay = slot:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+                                    slot.countDisplay = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
                                     slot.countDisplay:SetDrawLayer("OVERLAY", 7)
                                 end
 
                                 slot.countDisplay:SetText("1")
                                 slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")  -- Same size as animated numbers
                                 slot.countDisplay:SetTextColor(1, 0.2, 0.2)  -- Dark red
-                                slot.countDisplay:SetPoint("CENTER", slot.icon, "CENTER", 0, 0)  -- Centered on icon
+                                slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0)  -- Centered on icon
                                 slot.deleteCount = 1
                             end
 
@@ -1075,10 +1076,11 @@ function Gacha:AnimateStackCount(slotNum, item)
     local maxCount = item.stackCount
     local finalCount = math.random(1, maxCount)  -- Pre-determine the final count
 
-    -- Create count display on higher layer
+    -- Create count display on higher layer (on iconButton if it exists, otherwise on slot)
+    local parent = slot.iconButton or slot
     if not slot.countDisplay then
-        slot.countDisplay = slot:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-        slot.countDisplay:SetPoint("CENTER", slot.icon, "CENTER", 0, 0)  -- Center on the icon during animation
+        slot.countDisplay = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+        slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0)  -- Center on the icon during animation
         slot.countDisplay:SetTextColor(1, 1, 0)  -- Yellow
         slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")  -- Bigger font
         slot.countDisplay:SetDrawLayer("OVERLAY", 7)  -- Highest sublayer
@@ -1157,9 +1159,10 @@ function Gacha:AnimateStackCount(slotNum, item)
             C_Timer.After(2, function()
                 -- Keep the count visible with same size
                 if slot.countDisplay then
+                    local parent = slot.iconButton or slot
                     slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")  -- Keep same size as during animation
                     slot.countDisplay:SetTextColor(1, 0.2, 0.2)  -- Dark red
-                    slot.countDisplay:SetPoint("CENTER", slot.icon, "CENTER", 0, 0)  -- Keep centered on icon
+                    slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0)  -- Keep centered on icon
                 end
 
                 -- Reset slot background color
