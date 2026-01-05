@@ -15,7 +15,7 @@ local TIER_INFO = {
         name = "C Tier",
         color = {r=0.5, g=0.5, b=0.5},
         hex = "ff808080",
-        weight = 72,  -- 72% base chance (increased to compensate)
+        weight = 71.6,  -- 71.6% base chance (balanced for shard system)
         description = "Junk & Non-Equipable Items"
     },
     ["B"] = {
@@ -36,14 +36,14 @@ local TIER_INFO = {
         name = "S Tier",
         color = {r=1.0, g=0.84, b=0},
         hex = "ffffd700",
-        weight = 0.8,   -- 0.8% base chance (reduced for shard balance)
+        weight = 1.1,   -- 1.1% base chance (tuned for ~75 pulls per 3 shards)
         description = "Currently Equipped Items"
     },
     ["SS"] = {
         name = "SS Tier",
         color = {r=1.0, g=0.5, b=0},
         hex = "ffff8000",
-        weight = 0.2, -- 0.2% base chance (ULTRA RARE, reduced for shard balance)
+        weight = 0.3, -- 0.3% base chance (ULTRA RARE, tuned for shard balance)
         description = "Epic/Legendary Equipped"
     }
 }
