@@ -208,11 +208,43 @@ function Gacha:CreateGachaFrame()
         slot.tierText:SetPoint("CENTER", slot.tierBanner, "CENTER", 0, 0)
         slot.tierText:SetText("")
 
-        -- Item icon
-        slot.icon = slot:CreateTexture(nil, "ARTWORK")
-        slot.icon:SetSize(64, 64)
-        slot.icon:SetPoint("CENTER", slot, "CENTER", 0, 10)
+        -- Item icon (make it a button for tooltips)
+        slot.iconButton = CreateFrame("Button", nil, slot)
+        slot.iconButton:SetSize(64, 64)
+        slot.iconButton:SetPoint("CENTER", slot, "CENTER", 0, 10)
+
+        slot.icon = slot.iconButton:CreateTexture(nil, "ARTWORK")
+        slot.icon:SetAllPoints(slot.iconButton)
         slot.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+
+        -- Store item data for tooltip
+        slot.iconButton.currentItem = nil
+
+        -- Add tooltip on hover
+        slot.iconButton:SetScript("OnEnter", function(self)
+            if self.currentItem then
+                GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+                if self.currentItem.link then
+                    GameTooltip:SetHyperlink(self.currentItem.link)
+                elseif self.currentItem.itemId then
+                    GameTooltip:SetItemByID(self.currentItem.itemId)
+                else
+                    GameTooltip:SetText(self.currentItem.name or "Unknown Item", 1, 1, 1)
+                    if self.currentItem.tier then
+                        local tierInfo = TIER_INFO[self.currentItem.tier]
+                        if tierInfo then
+                            GameTooltip:AddLine(string.format("%s Tier", self.currentItem.tier),
+                                tierInfo.color.r, tierInfo.color.g, tierInfo.color.b)
+                        end
+                    end
+                end
+                GameTooltip:Show()
+            end
+        end)
+
+        slot.iconButton:SetScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
 
         -- Item name (with word wrap)
         slot.itemText = slot:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -417,6 +449,9 @@ function Gacha:UpdateGachaUI()
                     slot.icon:SetTexture(display.item.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
                     slot.icon:SetAlpha(0.6) -- Semi-transparent while spinning
 
+                    -- Update current item for tooltip (even while spinning)
+                    slot.iconButton.currentItem = display.item
+
                     -- Quick flash of item names
                     local itemName = display.item.name or "???"
                     if string.len(itemName) > 20 then
@@ -427,6 +462,7 @@ function Gacha:UpdateGachaUI()
                 else
                     slot.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
                     slot.icon:SetAlpha(0.5)
+                    slot.iconButton.currentItem = nil
                     slot.itemText:SetText("...")
                     slot.itemText:SetTextColor(0.5, 0.5, 0.5)
                 end
@@ -440,6 +476,10 @@ function Gacha:UpdateGachaUI()
                 -- STOPPED - Show final item clearly
                 slot.icon:SetTexture(display.item.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
                 slot.icon:SetAlpha(1.0) -- Full opacity when stopped
+
+                -- Update current item for tooltip
+                slot.iconButton.currentItem = display.item
+                slot.iconButton.currentItem.tier = display.tier  -- Add tier info
 
                 -- Set item name with quality color
                 local qualityColor = ITEM_QUALITY_COLORS[display.item.quality or 1]
@@ -477,6 +517,7 @@ function Gacha:UpdateGachaUI()
                 -- Empty/waiting
                 slot.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
                 slot.icon:SetAlpha(0.3)
+                slot.iconButton.currentItem = nil
                 slot.itemText:SetText("")
                 slot.stars:SetText("")
             end
