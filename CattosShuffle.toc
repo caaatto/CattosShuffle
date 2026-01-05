@@ -2,7 +2,7 @@
 ## Title: |cffffcc00Cattos|r|cff00ff00Shuffle|r
 ## Notes: Equipment & Bag Roulette for Hardcore WoW
 ## Author: Catto
-## Version: 2.1.5
+## Version: 2.1.6
 ## SavedVariables: CattosShuffleDB
 ## DefaultState: enabled
 

@@ -395,15 +395,40 @@ function Gacha:GetRandomTier()
 end
 
 -- Get random item from tier
-function Gacha:GetRandomItemFromTier(tier)
+function Gacha:GetRandomItemFromTier(tier, excludeList)
     local pool = self.tierPools[tier]
     if not pool or #pool == 0 then
         -- If tier is empty, downgrade to next tier
-        if tier == "SS" then return self:GetRandomItemFromTier("S")
-        elseif tier == "S" then return self:GetRandomItemFromTier("A")
-        elseif tier == "A" then return self:GetRandomItemFromTier("B")
-        elseif tier == "B" then return self:GetRandomItemFromTier("C")
+        if tier == "SS" then return self:GetRandomItemFromTier("S", excludeList)
+        elseif tier == "S" then return self:GetRandomItemFromTier("A", excludeList)
+        elseif tier == "A" then return self:GetRandomItemFromTier("B", excludeList)
+        elseif tier == "B" then return self:GetRandomItemFromTier("C", excludeList)
         else return nil end
+    end
+
+    -- If we have an exclude list, filter the pool
+    if excludeList and next(excludeList) then
+        local availablePool = {}
+        for _, item in ipairs(pool) do
+            local isExcluded = false
+            for _, excluded in pairs(excludeList) do
+                if excluded and item and excluded.itemId == item.itemId and
+                   excluded.bag == item.bag and excluded.slot == item.slot then
+                    isExcluded = true
+                    break
+                end
+            end
+            if not isExcluded then
+                table.insert(availablePool, item)
+            end
+        end
+
+        -- If all items are excluded, just return a random one anyway
+        if #availablePool == 0 then
+            return pool[math.random(1, #pool)]
+        end
+
+        return availablePool[math.random(1, #availablePool)]
     end
 
     return pool[math.random(1, #pool)]
@@ -434,7 +459,8 @@ function Gacha:Pull10Fast()
         self.spinCount, self.pityThreshold, self.bTierPityCount, self.bTierPityThreshold))
 
     local results = {
-        matches = {}  -- Store which pulls had matches
+        matches = {},  -- Store which pulls had matches
+        deletedItems = {}  -- Track items already marked for deletion
     }
 
     -- Process all 10 pulls at once
@@ -468,7 +494,8 @@ function Gacha:Pull10Fast()
 
         for slot = 1, 3 do
             local tier = forcedPityTier or self:GetRandomTier()
-            local item = self:GetRandomItemFromTier(tier)
+            -- Pass the exclude list to avoid selecting already deleted items
+            local item = self:GetRandomItemFromTier(tier, results.deletedItems)
 
             pullResult.tiers[slot] = tier
             pullResult.items[slot] = item
@@ -517,7 +544,36 @@ function Gacha:Pull10Fast()
             end
 
             -- Choose random item from the matched tier for deletion
-            local victim = pullResult.items[math.random(1, 3)]
+            -- But make sure we don't choose an already deleted item
+            local availableVictims = {}
+            for _, item in ipairs(pullResult.items) do
+                if item then
+                    local alreadyDeleted = false
+                    for _, deleted in pairs(results.deletedItems) do
+                        if deleted and deleted.itemId == item.itemId and
+                           deleted.bag == item.bag and deleted.slot == item.slot then
+                            alreadyDeleted = true
+                            break
+                        end
+                    end
+                    if not alreadyDeleted then
+                        table.insert(availableVictims, item)
+                    end
+                end
+            end
+
+            local victim
+            if #availableVictims > 0 then
+                victim = availableVictims[math.random(1, #availableVictims)]
+            else
+                -- Fallback if somehow all are deleted (shouldn't happen)
+                victim = pullResult.items[math.random(1, 3)]
+            end
+
+            -- Add to deleted items list
+            if victim then
+                table.insert(results.deletedItems, victim)
+            end
 
             -- Override the result to mark it for deletion
             results[pullNum] = {
