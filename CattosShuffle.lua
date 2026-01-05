@@ -68,6 +68,7 @@ CattosShuffle.winnerSlot = nil
 CattosShuffle.history = {}
 CattosShuffle.choiceMode = false
 CattosShuffle.wasVisibleBeforeCombat = false
+CattosShuffle.pendingOpenAfterCombat = false
 
 -- Initialize
 function CattosShuffle:Initialize()
@@ -499,6 +500,14 @@ end
 -- History-Funktionen entfernt
 
 function CattosShuffle:Toggle()
+    -- Check if in combat
+    if InCombatLockdown() or UnitAffectingCombat("player") then
+        -- Set flag to open after combat
+        self.pendingOpenAfterCombat = true
+        print("|cffffcc00Will open after combat ends...|r")
+        return
+    end
+
     if self.frame and self.frame.Toggle then
         self.frame:Toggle()
     else
@@ -542,12 +551,26 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             CattosShuffle.wasVisibleBeforeCombat = false
         end
     elseif event == "PLAYER_REGEN_ENABLED" then
-        -- Leaving combat - show the UI if it was visible before
-        if CattosShuffle.wasVisibleBeforeCombat and CattosShuffle.frame then
+        -- Leaving combat - handle both reopening and pending opens
+
+        -- First check if window should reopen (was visible before combat)
+        local shouldReopen = CattosShuffle.wasVisibleBeforeCombat
+        CattosShuffle.wasVisibleBeforeCombat = false
+
+        if shouldReopen and CattosShuffle.frame then
             CattosShuffle.frame:Show()
             CattosShuffle:RefreshUI()
             print(L["WINDOW_REOPENED"])
-            CattosShuffle.wasVisibleBeforeCombat = false
+        end
+
+        -- Then check if there's a pending open request from during combat
+        if CattosShuffle.pendingOpenAfterCombat then
+            CattosShuffle.pendingOpenAfterCombat = false
+            -- Small delay to ensure combat flag is cleared
+            C_Timer.After(0.1, function()
+                print("|cff00ff00Combat ended - opening window as requested!|r")
+                CattosShuffle:Toggle()
+            end)
         end
     end
 end)

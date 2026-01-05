@@ -276,6 +276,16 @@ end
 
 -- Toggle the slot machine window
 function RR:Toggle()
+    -- Check if in combat when trying to open
+    if not (self.slotFrame and self.slotFrame:IsShown()) then
+        if InCombatLockdown() or UnitAffectingCombat("player") then
+            -- Set flag to open after combat
+            self.pendingOpenAfterCombat = true
+            print("|cffffcc00Russian Roulette will open after combat ends...|r")
+            return
+        end
+    end
+
     if not self.slotFrame then
         self:CreateSlotMachineFrame()
     end

@@ -938,6 +938,16 @@ end
 
 -- Toggle the gacha window
 function Gacha:Toggle()
+    -- Check if in combat when trying to open
+    if not (self.frame and self.frame:IsShown()) then
+        if InCombatLockdown() or UnitAffectingCombat("player") then
+            -- Set flag to open after combat
+            self.pendingOpenAfterCombat = true
+            print("|cffffcc00Gacha will open after combat ends...|r")
+            return
+        end
+    end
+
     if not self.frame then
         self:CreateGachaFrame()
     end

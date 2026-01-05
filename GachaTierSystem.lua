@@ -71,6 +71,7 @@ Gacha.slots = {
     [2] = { current = nil, item = nil },
     [3] = { current = nil, item = nil }
 }
+Gacha.pendingOpenAfterCombat = false
 
 -- Pity System State
 Gacha.shards = 0
@@ -1540,13 +1541,27 @@ function Gacha:Initialize()
                 Gacha.itemListFrame:Hide()
             end
         elseif event == "PLAYER_REGEN_ENABLED" then
-            -- Leaving combat - reopen if it was visible
-            if Gacha.wasVisibleBeforeCombat and Gacha.frame then
+            -- Leaving combat - handle both reopening and pending opens
+
+            -- First check if window should reopen (was visible before combat)
+            local shouldReopen = Gacha.wasVisibleBeforeCombat
+            Gacha.wasVisibleBeforeCombat = false
+
+            if shouldReopen and Gacha.frame then
                 Gacha.frame:Show()
                 Gacha:BuildItemPool()  -- Rebuild pool after combat
                 Gacha:UpdateGachaUI()
                 print("|cff00ff00Combat ended - Gacha reopened!|r")
-                Gacha.wasVisibleBeforeCombat = false
+            end
+
+            -- Then check if there's a pending open request from during combat
+            if Gacha.pendingOpenAfterCombat then
+                Gacha.pendingOpenAfterCombat = false
+                -- Small delay to ensure combat flag is cleared
+                C_Timer.After(0.1, function()
+                    print("|cff00ff00Combat ended - opening Gacha as requested!|r")
+                    Gacha:Toggle()
+                end)
             end
         end
     end)

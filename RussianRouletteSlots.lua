@@ -32,6 +32,7 @@ RR.inventory = {}
 -- Pity System (like in Gacha games)
 RR.safeSpins = 0  -- Count of safe spins (no deletion)
 RR.lastDeletion = nil  -- Quality of last deleted item
+RR.pendingOpenAfterCombat = false  -- Flag for opening after combat
 
 -- Scan inventory for all items and their qualities
 function RR:ScanInventory()
@@ -598,11 +599,45 @@ function RR:Initialize()
 
     -- Register combat events
     local combatFrame = CreateFrame("Frame")
+    combatFrame:RegisterEvent("PLAYER_REGEN_DISABLED")  -- Entering combat
     combatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")  -- Combat ended
     combatFrame:SetScript("OnEvent", function(self, event)
-        if event == "PLAYER_REGEN_ENABLED" and RR.pendingDeletion then
-            print("|cffffcc00Combat ended - pending Russian Roulette deletion can now be executed!|r")
-            RR.pendingDeletion = nil  -- Clear it so it doesn't persist
+        if event == "PLAYER_REGEN_DISABLED" then
+            -- Entering combat - close RR window if open
+            if RR.slotFrame and RR.slotFrame:IsShown() then
+                RR.wasVisibleBeforeCombat = true
+                RR.slotFrame:Hide()
+                print("|cffff0000Russian Roulette closed - entering combat!|r")
+            else
+                RR.wasVisibleBeforeCombat = false
+            end
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            -- Handle pending deletion notification
+            if RR.pendingDeletion then
+                print("|cffffcc00Combat ended - pending Russian Roulette deletion can now be executed!|r")
+                RR.pendingDeletion = nil  -- Clear it so it doesn't persist
+            end
+
+            -- Handle window reopening
+            local shouldReopen = RR.wasVisibleBeforeCombat
+            RR.wasVisibleBeforeCombat = false
+
+            if shouldReopen and RR.slotFrame then
+                RR.slotFrame:Show()
+                RR:ScanInventory()
+                RR:UpdateSlotUI()
+                print("|cff00ff00Combat ended - Russian Roulette reopened!|r")
+            end
+
+            -- Handle pending open request from during combat
+            if RR.pendingOpenAfterCombat then
+                RR.pendingOpenAfterCombat = false
+                -- Small delay to ensure combat flag is cleared
+                C_Timer.After(0.1, function()
+                    print("|cff00ff00Combat ended - opening Russian Roulette as requested!|r")
+                    RR:Toggle()
+                end)
+            end
         end
     end)
 
