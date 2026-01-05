@@ -2,9 +2,6 @@
 
 A high-stakes RNG addon for World of Warcraft Classic Era (1.15.3) that adds excitement and risk to your hardcore adventures through various gambling mechanics.
 
-## WARNING
-This addon will **PERMANENTLY DELETE** items from your inventory! There is **NO UNDO**! Use at your own risk!
-
 ## Features
 
 ### Main Shuffle System
