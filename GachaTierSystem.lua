@@ -381,17 +381,11 @@ function Gacha:Pull()
     self.bTierPityCount = self.bTierPityCount + 1
     CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
 
-    -- Check for B-Tier pity (every 10 rolls)
+    -- Check pity systems (50-spin has priority over B-Tier)
     local forcedPityTier = nil
-    if self.bTierPityCount >= self.bTierPityThreshold then
-        forcedPityTier = "B"
-        print("|cff99ccff>>> 10-ROLL PITY: B TIER TRIPLE GUARANTEED! <<<|r")
 
-        -- Reset B-Tier pity counter
-        self.bTierPityCount = 0
-        CattosShuffleDB.gachaBTierPityCount = 0
-    -- Check if we hit the 50 spin pity
-    elseif self.spinCount >= self.pityThreshold then
+    -- Check if we hit the 50 spin pity FIRST (higher priority)
+    if self.spinCount >= self.pityThreshold then
         -- 50/50 between S and A tier
         if math.random() < 0.5 then
             forcedPityTier = "S"
@@ -404,6 +398,19 @@ function Gacha:Pull()
         -- Reset spin counter
         self.spinCount = 0
         CattosShuffleDB.gachaSpinCount = 0
+
+        -- NOTE: B-Tier pity continues counting independently!
+
+    -- Check for B-Tier pity (every 10 rolls) - only if 50-spin didn't trigger
+    elseif self.bTierPityCount >= self.bTierPityThreshold then
+        forcedPityTier = "B"
+        print("|cff99ccff>>> 10-ROLL PITY: B TIER TRIPLE GUARANTEED! <<<|r")
+
+        -- Reset B-Tier pity counter
+        self.bTierPityCount = 0
+        CattosShuffleDB.gachaBTierPityCount = 0
+
+        -- NOTE: 50-spin pity continues counting independently!
     end
 
     -- Determine results for 3 slots
@@ -612,6 +619,21 @@ function Gacha:OnPullComplete()
     if tier1 == tier2 and tier2 == tier3 then
         local tierInfo = TIER_INFO[tier1]
         print(string.format("|c%s>>> TRIPLE %s! <<<|r", tierInfo.hex, tierInfo.name))
+
+        -- Reset appropriate pity counters based on tier
+        if tier1 == "B" then
+            -- Reset B-Tier pity on B triple
+            self.bTierPityCount = 0
+            CattosShuffleDB.gachaBTierPityCount = 0
+            print("|cff99ccffB-Tier pity counter reset!|r")
+        end
+
+        -- Reset main pity only on S or A triple (independent from B-Tier)
+        if tier1 == "S" or tier1 == "A" then
+            self.spinCount = 0
+            CattosShuffleDB.gachaSpinCount = 0
+            print("|cffffcc0050-Spin pity counter reset!|r")
+        end
 
         -- Animate the selection process
         print("|cffffcc00Selecting random item to delete...|r")

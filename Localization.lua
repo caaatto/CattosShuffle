@@ -59,10 +59,10 @@ local strings = {
     -- UI Elements
     ["EQUIPMENT"] = "Equipment",
     ["BAGS"] = "Bags",
-    ["EMPTY_BAG"] = "Empty Bag\n69 Gold",
-    ["DELETE_ITEM"] = "Delete Item\n100 Gold",
-    ["DELETE_BAG"] = "Delete Bag\n150 Gold",
-    ["FREE_CHOICE"] = "Free Choice\n200 Gold",
+    ["EMPTY_BAG"] = "Empty Bag",
+    ["DELETE_ITEM"] = "Delete Item",
+    ["DELETE_BAG"] = "Delete Bag",
+    ["FREE_CHOICE"] = "Free Choice",
 
     -- Messages
     ["ADDON_LOADED"] = "|cff00ff00CattosShuffle|r loaded! Use |cffffcc00/cattos|r or |cffffcc00/cc|r for help.",
@@ -71,7 +71,7 @@ local strings = {
     ["NO_EQUIPMENT_SLOTS"] = "|cffff0000No equipment slots with items found!|r",
     ["NO_BAGS_WITH_ITEMS"] = "|cffff0000No bags with items found!|r",
     ["NO_VALID_BAGS"] = "|cffff0000No valid bags found!|r",
-    ["RESULT"] = "|cff00ff00Result:|r %s for |cffffcc00%d Gold|r - Selected: |cffff00ff%s|r",
+    ["RESULT"] = "|cff00ff00Result:|r %s - Selected: |cffff00ff%s|r",
     ["CHOICE_MODE_ACTIVE"] = "|cff00ff00Free choice mode activated!|r Click on a slot.",
     ["SPIN_CANCELLED"] = "|cffff0000Spin cancelled!|r",
     ["WINDOW_CLOSED_COMBAT"] = "|cffff0000CattosShuffle: Window auto-closed - combat started!|r",
@@ -98,10 +98,10 @@ local strings = {
     ["AUTO_MODE"] = "Auto mode enabled",
     ["COMMANDS"] = "Commands:",
     ["CMD_OPEN"] = "|cffffcc00/cattos|r or |cffffcc00/cc|r - Open UI",
-    ["CMD_BAGS"] = "|cffffcc00/cattos bags|r - Bags spin (69 Gold)",
-    ["CMD_SHEET"] = "|cffffcc00/cattos sheet|r - Equipment spin (100 Gold)",
-    ["CMD_DELETE"] = "|cffffcc00/cattos delete|r - Delete bag (150 Gold)",
-    ["CMD_CHOICE"] = "|cffffcc00/cattos choice|r - Free choice (200 Gold)",
+    ["CMD_BAGS"] = "|cffffcc00/cattos bags|r - Bags spin",
+    ["CMD_SHEET"] = "|cffffcc00/cattos sheet|r - Equipment spin",
+    ["CMD_DELETE"] = "|cffffcc00/cattos delete|r - Delete bag",
+    ["CMD_CHOICE"] = "|cffffcc00/cattos choice|r - Free choice",
 
     -- Sound messages
     ["SOUND_THEME_CHANGED"] = "|cff00ff00CattosShuffle:|r Sound theme changed to: |cffffcc00%s|r",
@@ -195,10 +195,10 @@ if locale == "deDE" then
 
     strings["EQUIPMENT"] = "Ausrüstung"
     strings["BAGS"] = "Taschen"
-    strings["EMPTY_BAG"] = "Tasche leeren\n69 Gold"
-    strings["DELETE_ITEM"] = "Item löschen\n100 Gold"
-    strings["DELETE_BAG"] = "Tasche löschen\n150 Gold"
-    strings["FREE_CHOICE"] = "Freie Wahl\n200 Gold"
+    strings["EMPTY_BAG"] = "Tasche leeren"
+    strings["DELETE_ITEM"] = "Item löschen"
+    strings["DELETE_BAG"] = "Tasche löschen"
+    strings["FREE_CHOICE"] = "Freie Wahl"
 
     strings["ADDON_LOADED"] = "|cff00ff00CattosShuffle|r geladen! Nutze |cffffcc00/cattos|r oder |cffffcc00/cc|r für Hilfe."
     strings["SPIN_ALREADY_RUNNING"] = "|cffff0000Spin läuft bereits!|r"
@@ -206,7 +206,7 @@ if locale == "deDE" then
     strings["NO_EQUIPMENT_SLOTS"] = "|cffff0000Keine Ausrüstungsplätze mit Items gefunden!|r"
     strings["NO_BAGS_WITH_ITEMS"] = "|cffff0000Keine Taschen mit Items gefunden!|r"
     strings["NO_VALID_BAGS"] = "|cffff0000Keine gültigen Taschen gefunden!|r"
-    strings["RESULT"] = "|cff00ff00Ergebnis:|r %s für |cffffcc00%d Gold|r - Gewählt: |cffff00ff%s|r"
+    strings["RESULT"] = "|cff00ff00Ergebnis:|r %s - Gewählt: |cffff00ff%s|r"
     strings["CHOICE_MODE_ACTIVE"] = "|cff00ff00Freie Auswahl Modus aktiviert!|r Klicke auf einen Slot."
     strings["SPIN_CANCELLED"] = "|cffff0000Spin abgebrochen!|r"
     strings["WINDOW_CLOSED_COMBAT"] = "|cffff0000CattosShuffle: Fenster automatisch geschlossen - Kampf begonnen!|r"
@@ -230,10 +230,10 @@ if locale == "deDE" then
     strings["AUTO_MODE"] = "Auto-Modus aktiviert"
     strings["COMMANDS"] = "Befehle:"
     strings["CMD_OPEN"] = "|cffffcc00/cattos|r oder |cffffcc00/cc|r - UI öffnen"
-    strings["CMD_BAGS"] = "|cffffcc00/cattos bags|r - Taschen-Spin (69 Gold)"
-    strings["CMD_SHEET"] = "|cffffcc00/cattos sheet|r - Ausrüstung-Spin (100 Gold)"
-    strings["CMD_DELETE"] = "|cffffcc00/cattos delete|r - Tasche löschen (150 Gold)"
-    strings["CMD_CHOICE"] = "|cffffcc00/cattos choice|r - Freie Wahl (200 Gold)"
+    strings["CMD_BAGS"] = "|cffffcc00/cattos bags|r - Taschen-Spin"
+    strings["CMD_SHEET"] = "|cffffcc00/cattos sheet|r - Ausrüstung-Spin"
+    strings["CMD_DELETE"] = "|cffffcc00/cattos delete|r - Tasche löschen"
+    strings["CMD_CHOICE"] = "|cffffcc00/cattos choice|r - Freie Wahl"
 
     strings["SOUND_THEME_CHANGED"] = "|cff00ff00CattosShuffle:|r Sound-Theme geändert zu: |cffffcc00%s|r"
     strings["AVAILABLE_THEMES"] = "|cff00ff00CattosShuffle:|r Verfügbare Themes: |cffffcc00%s|r"

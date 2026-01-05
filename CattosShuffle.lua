@@ -457,7 +457,7 @@ function CattosShuffle:OnSpinComplete()
     local actionInfo = self.ACTIONS[self.currentAction]
     if actionInfo then
         print(string.format(L["RESULT"],
-            actionInfo.description, actionInfo.price, winnerName))
+            actionInfo.description, winnerName))
     end
 
     -- Update UI if exists
