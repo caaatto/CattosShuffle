@@ -125,7 +125,11 @@ function Gacha:GetItemTier(item)
     elseif baseType == "Consumable" then
         tier = "B"
     -- Equipable items (Armor/Weapon) are A tier
-    elseif baseType == "Armor" or baseType == "Weapon" then
+    -- Check both English and localized strings
+    elseif baseType == "Armor" or baseType == "Weapon" or
+           baseType == "Rüstung" or baseType == "Waffe" or  -- German
+           baseType == _G["ARMOR"] or baseType == _G["WEAPON"] or  -- Localized globals
+           (item.equipSlot and item.equipSlot ~= "") then  -- Alternative check
         tier = "A"
 
         -- If currently equipped, upgrade to S tier
@@ -195,6 +199,10 @@ function Gacha:BuildItemPool()
 
                 local tier = self:GetItemTier(item)
                 item.tier = tier
+
+                -- Debug output for equipped items
+                print(string.format("|cffffcc00[DEBUG] Equipped: %s -> Tier: %s (Type: %s)|r",
+                    item.name or "Unknown", tier, item.itemType or "nil"))
 
                 table.insert(self.itemPool, item)
                 table.insert(self.tierPools[tier], item)
