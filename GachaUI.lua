@@ -741,11 +741,13 @@ end
 -- Show tier legend popup
 function Gacha:ShowTierLegend()
     StaticPopupDialogs["CATTOS_GACHA_LEGEND"] = {
-        text = "|cffffcc00GACHA TIER SYSTEM|r\n\n" .. "|cffff8000SS Tier (Ultra Rare):|r Epic/Legendary Equipped\n" ..
+        text = "|cffffcc00GACHA TIER SYSTEM|r\n\n" ..
+            "|cffff8000SS Tier (Ultra Rare):|r Epic/Legendary Equipped Items\n" ..
             "|cffffd700S Tier (Super Rare):|r Currently Equipped Items\n" ..
-            "|cff9933ccA Tier (Rare):|r Equipable Gear (Not Worn)\n" ..
-            "|cff99ccffB Tier (Uncommon):|r Quest Items & Consumables\n" ..
-            "|cff808080C Tier (Common):|r Junk & Non-Equipable Items\n\n" .. "Epic/Legendary items upgrade their tier!",
+            "|cff9933ccA Tier (Rare):|r Weapons, Armor & Bags (Not Equipped)\n" ..
+            "|cff99ccffB Tier (Uncommon):|r Consumables & Quest Items\n" ..
+            "|cff808080C Tier (Common):|r Crafting Materials, Junk & Misc\n\n" ..
+            "Epic/Legendary items upgrade their tier!",
         button1 = "Got it!",
         timeout = 0,
         whileDead = true,

@@ -16,21 +16,21 @@ local TIER_INFO = {
         color = {r=0.5, g=0.5, b=0.5},
         hex = "ff808080",
         weight = 71.6,  -- 71.6% base chance (balanced for shard system)
-        description = "Junk & Non-Equipable Items"
+        description = "Crafting Materials, Junk & Misc"
     },
     ["B"] = {
         name = "B Tier",
         color = {r=0.6, g=0.8, b=1.0},
         hex = "ff99ccff",
         weight = 20,  -- 20% base chance (unchanged)
-        description = "Quest Items & Consumables"
+        description = "Consumables & Quest Items"
     },
     ["A"] = {
         name = "A Tier",
         color = {r=0.6, g=0.2, b=0.8},
         hex = "ff9933cc",
         weight = 7,   -- 7% base chance (slightly decreased)
-        description = "Equipable Gear (Not Worn)"
+        description = "Weapons, Armor & Bags (Not Equipped)"
     },
     ["S"] = {
         name = "S Tier",
@@ -44,7 +44,7 @@ local TIER_INFO = {
         color = {r=1.0, g=0.5, b=0},
         hex = "ffff8000",
         weight = 0.3, -- 0.3% base chance (ULTRA RARE, tuned for shard balance)
-        description = "Epic/Legendary Equipped"
+        description = "Epic/Legendary Equipped Items"
     }
 }
 
@@ -114,6 +114,7 @@ function Gacha:GetItemTier(item)
     local subType = item.itemSubType or ""
     local quality = item.quality or 0
     local isEquipped = item.isEquipped or false
+    local equipSlot = item.equipSlot or ""
 
     -- Start with base tier
     local tier = "C"
@@ -132,26 +133,95 @@ function Gacha:GetItemTier(item)
         return tier
     end
 
-    -- PRIORITY 2: Non-equipped items
-    -- Quest items are B tier
+    -- PRIORITY 2: Non-equipped items categorization
+
+    -- B TIER: Quest Items & Consumables
+    -- Quest items
     if item.isQuest or IsQuestItem(item.itemId) then
         tier = "B"
-    -- Consumables are B tier
-    elseif baseType == "Consumable" then
+    -- Consumables (Food, Potions, Elixirs, Flasks, Bandages, etc.)
+    elseif baseType == "Consumable" or baseType == "Verbrauchbar" or -- EN/DE base
+           baseType == "Verbrauchsgüter" or -- DE alternative
+           subType == "Food & Drink" or subType == "Essen & Trinken" or
+           subType == "Potion" or subType == "Trank" or
+           subType == "Elixir" or subType == "Elixier" or
+           subType == "Flask" or subType == "Fläschchen" or
+           subType == "Bandage" or subType == "Verband" or
+           subType == "Scroll" or subType == "Rolle" or
+           subType == "Schriftrolle" or
+           subType == "Other" and baseType == "Consumable" or
+           subType == "Explosives" or subType == "Sprengstoffe" or
+           subType == "Devices" or subType == "Geräte" then
         tier = "B"
-    -- Equipable items (Armor/Weapon) are A tier
-    -- Check both English and localized strings
-    elseif baseType == "Armor" or baseType == "Weapon" or
-           baseType == "Rüstung" or baseType == "Waffe" or  -- German
-           baseType == _G["ARMOR"] or baseType == _G["WEAPON"] or  -- Localized globals
-           (item.equipSlot and item.equipSlot ~= "") then  -- Alternative check
+
+    -- A TIER: Equipable items (Not currently worn)
+    -- Armor
+    elseif baseType == "Armor" or baseType == "Rüstung" or
+           -- Check by equipment slot (more reliable)
+           (equipSlot ~= "" and equipSlot ~= "INVTYPE_NON_EQUIP_IGNORE" and
+            (equipSlot:find("INVTYPE_") or equipSlot ~= "")) then
         tier = "A"
-    -- Trade goods, reagents etc are C tier
+    -- Weapons
+    elseif baseType == "Weapon" or baseType == "Waffe" then
+        tier = "A"
+    -- Containers (Bags, Quivers, Ammo Pouches)
+    elseif baseType == "Container" or baseType == "Behälter" or
+           baseType == "Quiver" or baseType == "Köcher" or
+           subType == "Bag" or subType == "Tasche" or
+           subType == "Soul Bag" or subType == "Seelentasche" or
+           subType == "Herb Bag" or subType == "Kräutertasche" or
+           subType == "Enchanting Bag" or subType == "Verzauberertasche" or
+           subType == "Engineering Bag" or subType == "Ingenieurstasche" or
+           subType == "Mining Bag" or subType == "Bergbautasche" or
+           subType == "Leatherworking Bag" or subType == "Lederertasche" or
+           subType == "Ammo Pouch" or subType == "Munitionsbeutel" then
+        tier = "A"
+    -- Projectiles (Arrows, Bullets)
+    elseif baseType == "Projectile" or baseType == "Projektil" or
+           subType == "Arrow" or subType == "Pfeil" or
+           subType == "Bullet" or subType == "Geschoss" then
+        tier = "A"
+
+    -- C TIER: Everything else (Junk, Trade Goods, Reagents, Misc)
+    -- Trade Goods
+    elseif baseType == "Trade Goods" or baseType == "Handwerkswaren" or
+           baseType == "Tradeskill" then
+        tier = "C"
+    -- Reagents
+    elseif baseType == "Reagent" or baseType == "Reagenz" then
+        tier = "C"
+    -- Recipe/Patterns
+    elseif baseType == "Recipe" or baseType == "Rezept" or
+           subType == "Book" or subType == "Buch" or
+           subType == "Pattern" or subType == "Muster" or
+           subType == "Schematic" or subType == "Bauplan" or
+           subType == "Design" or subType == "Entwurf" or
+           subType == "Formula" or subType == "Formel" or
+           subType == "Plans" or subType == "Pläne" then
+        tier = "C"
+    -- Miscellaneous
+    elseif baseType == "Miscellaneous" or baseType == "Diverses" or
+           baseType == "Verschiedenes" then
+        tier = "C"
+    -- Junk
+    elseif baseType == "Junk" or baseType == "Plunder" or
+           baseType == "Schrott" or quality == 0 then -- Gray quality items
+        tier = "C"
+    -- Keys
+    elseif baseType == "Key" or baseType == "Schlüssel" then
+        tier = "C"
+    -- Gems
+    elseif baseType == "Gem" or baseType == "Edelstein" or
+           subType == "Simple" or subType == "Einfach" or
+           subType == "Prismatic" or subType == "Prismatisch" then
+        tier = "C"
+    -- Default fallback
     else
         tier = "C"
     end
 
     -- Apply rarity upgrade for non-equipped items
+    -- This can upgrade items based on their quality (Rare/Epic/Legendary)
     if not isEquipped and quality >= 3 then
         local upgrade = RARITY_UPGRADE[quality] or 0
 
@@ -161,7 +231,7 @@ function Gacha:GetItemTier(item)
         elseif tier == "B" and upgrade >= 1 then
             tier = "A"
         elseif tier == "A" and upgrade >= 2 then
-            tier = "S"
+            tier = "S"  -- Very rare unequipped items can become S tier
         end
     end
 

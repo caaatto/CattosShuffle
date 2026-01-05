@@ -133,11 +133,11 @@ local strings = {
     ["GACHA_HOW_WORKS"] = "|cffffcc00HOW IT WORKS:|r",
     ["GACHA_HOW_WORKS_DESC"] = "1. Click [ PULL x3 ] to start\n2. The 3 reels spin\n3. Each reel stops one by one\n4. If all 3 match = Delete item!\n5. If no match = Everything safe!",
     ["GACHA_TIERS"] = "|cffffcc00THE TIER SYSTEM:|r",
-    ["GACHA_TIER_SS"] = "|cffff8000SS|r = Epic/Legendary Equipped (ultra rare!)",
+    ["GACHA_TIER_SS"] = "|cffff8000SS|r = Epic/Legendary Equipped Items (ultra rare!)",
     ["GACHA_TIER_S"] = "|cffffd700S|r = Currently Equipped Items",
-    ["GACHA_TIER_A"] = "|cff9933ccA|r = Equipment in Bags",
-    ["GACHA_TIER_B"] = "|cff99ccffB|r = Quest Items & Consumables",
-    ["GACHA_TIER_C"] = "|cff808080C|r = Junk & Misc Items",
+    ["GACHA_TIER_A"] = "|cff9933ccA|r = Weapons, Armor & Bags (Not Equipped)",
+    ["GACHA_TIER_B"] = "|cff99ccffB|r = Consumables & Quest Items",
+    ["GACHA_TIER_C"] = "|cff808080C|r = Crafting Materials, Junk & Misc",
     ["GACHA_RULES"] = "|cffffcc00IMPORTANT RULES:|r",
     ["GACHA_RULES_DESC"] = "- More items in a tier = higher chance\n- Few items in a tier = very low chance\n- Same item can appear multiple times!\n- On triple match, ONE random item deleted",
     ["GACHA_EXAMPLE"] = "|cffffcc00EXAMPLE:|r",
@@ -261,11 +261,11 @@ if locale == "deDE" then
     strings["GACHA_HOW_WORKS"] = "|cffffcc00WIE FUNKTIONIERT ES?|r"
     strings["GACHA_HOW_WORKS_DESC"] = "1. Klicke [ PULL x3 ] zum Starten\n2. Die 3 Walzen drehen sich\n3. Jede Walze stoppt nacheinander\n4. Alle 3 gleich = Item löschen!\n5. Kein Match = Alles sicher!"
     strings["GACHA_TIERS"] = "|cffffcc00DAS STUFEN-SYSTEM:|r"
-    strings["GACHA_TIER_SS"] = "|cffff8000SS|r = Episch/Legendär Ausgerüstet (ultra selten!)"
+    strings["GACHA_TIER_SS"] = "|cffff8000SS|r = Episch/Legendär Ausgerüstete Items (ultra selten!)"
     strings["GACHA_TIER_S"] = "|cffffd700S|r = Aktuell Ausgerüstete Items"
-    strings["GACHA_TIER_A"] = "|cff9933ccA|r = Ausrüstung in Taschen"
-    strings["GACHA_TIER_B"] = "|cff99ccffB|r = Quest-Items & Verbrauchbares"
-    strings["GACHA_TIER_C"] = "|cff808080C|r = Müll & Sonstige Items"
+    strings["GACHA_TIER_A"] = "|cff9933ccA|r = Waffen, Rüstungen & Taschen (Nicht Ausgerüstet)"
+    strings["GACHA_TIER_B"] = "|cff99ccffB|r = Verbrauchsgüter & Quest-Items"
+    strings["GACHA_TIER_C"] = "|cff808080C|r = Handwerksmaterialien, Müll & Sonstiges"
     strings["GACHA_RULES"] = "|cffffcc00WICHTIGE REGELN:|r"
     strings["GACHA_RULES_DESC"] = "- Mehr Items einer Stufe = höhere Chance\n- Wenige Items einer Stufe = sehr niedrige Chance\n- Gleiches Item kann mehrfach erscheinen!\n- Bei Triple: EIN zufälliges Item gelöscht"
     strings["GACHA_EXAMPLE"] = "|cffffcc00BEISPIEL:|r"
