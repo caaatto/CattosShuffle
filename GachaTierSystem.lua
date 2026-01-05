@@ -330,7 +330,9 @@ function Gacha:GetRandomItemFromTier(tier)
 end
 
 -- Start the gacha pull
-function Gacha:Pull()
+function Gacha:Pull(pullCount)
+    pullCount = pullCount or 1  -- Default to 1 pull
+
     if self.isSpinning then
         print("|cffff0000Already pulling!|r")
         return
@@ -351,6 +353,16 @@ function Gacha:Pull()
         return
     end
 
+    -- Store pull count for later use
+    self.currentPullCount = pullCount
+    self.currentPullIndex = 1
+
+    -- Start the first pull
+    self:DoPull()
+end
+
+-- Do a single pull
+function Gacha:DoPull()
     -- Build fresh item pool
     self:BuildItemPool()
 
@@ -672,6 +684,36 @@ function Gacha:OnPullComplete()
     if self.UpdateUI then
         self:UpdateUI()
     end
+
+    -- Check if we have more pulls to do
+    if self.currentPullCount and self.currentPullIndex then
+        if self.currentPullIndex < self.currentPullCount then
+            -- More pulls to do
+            self.currentPullIndex = self.currentPullIndex + 1
+
+            -- Show pull progress
+            print(string.format("|cffffcc00Pull %d/%d complete. Starting next pull...|r",
+                self.currentPullIndex - 1, self.currentPullCount))
+
+            -- Wait a moment before next pull
+            C_Timer.After(1.5, function()
+                -- Only continue if no match (no deletion pending)
+                if not self.pendingDelete then
+                    self:DoPull()
+                else
+                    -- If there's a pending delete, stop the multi-pull
+                    print("|cffff0000Multi-pull stopped due to match! Handle deletion first.|r")
+                    self.currentPullCount = nil
+                    self.currentPullIndex = nil
+                end
+            end)
+        else
+            -- All pulls complete
+            print(string.format("|cff00ff00All %d pulls complete!|r", self.currentPullCount))
+            self.currentPullCount = nil
+            self.currentPullIndex = nil
+        end
+    end
 end
 
 -- Auto-delete item with Delete confirmation
@@ -799,6 +841,13 @@ function Gacha:PerformDeletion()
         else
             print("|cffff0000Failed to pick up equipped item!|r")
         end
+    end
+
+    -- Clear multi-pull if it was active (stop after deletion)
+    if self.currentPullCount and self.currentPullCount > 1 then
+        print("|cffff0000Multi-pull cancelled after deletion.|r")
+        self.currentPullCount = nil
+        self.currentPullIndex = nil
     end
 end
 

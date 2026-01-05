@@ -265,16 +265,28 @@ function Gacha:CreateGachaFrame()
         frame.slots[i] = slot
     end
 
-    -- PULL button (gacha style)
+    -- PULL x1 button (gacha style)
     frame.pullButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
-    frame.pullButton:SetSize(150, 45)
-    frame.pullButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 75) -- Moved up for more space
-    frame.pullButton:SetText("[ PULL x3 ]")
+    frame.pullButton:SetSize(120, 45)
+    frame.pullButton:SetPoint("BOTTOM", frame, "BOTTOM", -70, 75) -- Moved left to make room for x10
+    frame.pullButton:SetText("[ PULL x1 ]")
     frame.pullButton:SetNormalFontObject("GameFontNormalLarge")
     frame.pullButton:SetHighlightFontObject("GameFontHighlightLarge")
     frame.pullButton:SetScript("OnClick", function()
         PlaySound(856, "SFX") -- Interface button click sound
-        Gacha:Pull()
+        Gacha:Pull(1)  -- Pull once
+    end)
+
+    -- PULL x10 button (bulk pull)
+    frame.pull10Button = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.pull10Button:SetSize(120, 45)
+    frame.pull10Button:SetPoint("BOTTOM", frame, "BOTTOM", 70, 75) -- Right side
+    frame.pull10Button:SetText("[ PULL x10 ]")
+    frame.pull10Button:SetNormalFontObject("GameFontNormalLarge")
+    frame.pull10Button:SetHighlightFontObject("GameFontHighlightLarge")
+    frame.pull10Button:SetScript("OnClick", function()
+        PlaySound(856, "SFX") -- Interface button click sound
+        Gacha:Pull(10)  -- Pull 10 times
     end)
 
     -- Spin status text (shows during animation) - UNDER the pull button
@@ -548,7 +560,13 @@ function Gacha:UpdateGachaUI()
             self.frame.statusText:SetText("|cffffcc00Choosing victim...|r")
         elseif stillSpinning == 3 then
             self.frame.pullButton:SetText(">>> SPINNING <<<")
-            self.frame.statusText:SetText("|cffccccccAll slots spinning...|r")
+            -- Show pull progress if doing multiple pulls
+            if Gacha.currentPullCount and Gacha.currentPullCount > 1 then
+                self.frame.statusText:SetText(string.format("|cffccccccPull %d/%d - All slots spinning...|r",
+                    Gacha.currentPullIndex or 1, Gacha.currentPullCount))
+            else
+                self.frame.statusText:SetText("|cffccccccAll slots spinning...|r")
+            end
         elseif stillSpinning == 2 then
             self.frame.pullButton:SetText(">> SLOWING <<")
             self.frame.statusText:SetText("|cffffcc00Slot 1 locked!|r")
@@ -560,9 +578,12 @@ function Gacha:UpdateGachaUI()
             self.frame.statusText:SetText("|cff00ff00All slots stopped!|r")
         end
         self.frame.pullButton:SetEnabled(false)
+        self.frame.pull10Button:SetEnabled(false)
     else
-        self.frame.pullButton:SetText("[ PULL x3 ]")
+        self.frame.pullButton:SetText("[ PULL x1 ]")
         self.frame.pullButton:SetEnabled(true)
+        self.frame.pull10Button:SetText("[ PULL x10 ]")
+        self.frame.pull10Button:SetEnabled(true)
 
         -- Clear status text when not spinning
         if self.frame.statusText then
