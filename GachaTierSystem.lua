@@ -205,10 +205,6 @@ function Gacha:BuildItemPool()
                 local tier = self:GetItemTier(item)
                 item.tier = tier
 
-                -- Debug output for equipped items
-                print(string.format("|cffffcc00[DEBUG] Equipped: %s -> Tier: %s (Type: %s)|r",
-                    item.name or "Unknown", tier, item.itemType or "nil"))
-
                 table.insert(self.itemPool, item)
                 table.insert(self.tierPools[tier], item)
                 self.totalItems = self.totalItems + 1
