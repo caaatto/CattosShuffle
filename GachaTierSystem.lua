@@ -329,10 +329,131 @@ function Gacha:GetRandomItemFromTier(tier)
     return pool[math.random(1, #pool)]
 end
 
--- Start the gacha pull
-function Gacha:Pull(pullCount)
-    pullCount = pullCount or 1  -- Default to 1 pull
+-- Fast x10 pull - calculate all results instantly
+function Gacha:Pull10Fast()
+    if self.isSpinning then
+        print("|cffff0000Already pulling!|r")
+        return
+    end
 
+    if InCombatLockdown() or UnitAffectingCombat("player") then
+        print("|cffff0000Cannot pull during combat!|r")
+        return
+    end
+
+    -- Build fresh item pool
+    self:BuildItemPool()
+
+    if self.totalItems == 0 then
+        print("|cffff0000No items found in inventory!|r")
+        return
+    end
+
+    print("|cffffcc00Processing x10 pull...|r")
+
+    local results = {
+        matches = {}  -- Store which pulls had matches
+    }
+
+    -- Process all 10 pulls at once
+    for pullNum = 1, 10 do
+        -- Increment counters for each pull
+        self.spinCount = self.spinCount + 1
+        CattosShuffleDB.gachaSpinCount = self.spinCount
+        self.bTierPityCount = self.bTierPityCount + 1
+        CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
+
+        -- Check pity systems for this pull
+        local forcedPityTier = nil
+
+        if self.spinCount >= self.pityThreshold then
+            forcedPityTier = math.random() < 0.5 and "S" or "A"
+            print(string.format("|cffffcc00Pull %d: 50-SPIN PITY! Forcing %s tier triple!|r", pullNum, forcedPityTier))
+        elseif self.bTierPityCount >= self.bTierPityThreshold then
+            forcedPityTier = "B"
+            print(string.format("|cff99ccffPull %d: B-TIER PITY! Forcing B tier triple!|r", pullNum))
+        end
+
+        -- Get 3 random tiers/items for this pull
+        local pullResult = {
+            tiers = {},
+            items = {}
+        }
+
+        for slot = 1, 3 do
+            local tier = forcedPityTier or self:GetRandomTier()
+            local item = self:GetRandomItemFromTier(tier)
+
+            pullResult.tiers[slot] = tier
+            pullResult.items[slot] = item
+        end
+
+        -- Check for match
+        local tier1 = pullResult.tiers[1]
+        local tier2 = pullResult.tiers[2]
+        local tier3 = pullResult.tiers[3]
+
+        local hasMatch = (tier1 == tier2 and tier2 == tier3)
+
+        -- Prepare result data
+        results[pullNum] = {
+            tier = tier1,  -- For display purposes, use first tier
+            item = pullResult.items[1],
+            shouldDelete = false
+        }
+
+        if hasMatch then
+            -- Mark all 3 slots from this pull for deletion
+            table.insert(results.matches, pullNum)
+
+            -- Reset appropriate pity counter
+            if tier1 == "B" then
+                self.bTierPityCount = 0
+                CattosShuffleDB.gachaBTierPityCount = 0
+            end
+            if tier1 == "S" or tier1 == "A" then
+                self.spinCount = 0
+                CattosShuffleDB.gachaSpinCount = 0
+            end
+
+            -- Choose random item from the matched tier for deletion
+            local victim = pullResult.items[math.random(1, 3)]
+
+            -- Set the actual results for display (show all 3 matching)
+            for i = 1, 3 do
+                local resultIndex = pullNum + (i - 1) * 0.1  -- Create sub-indices for display
+                if i == 1 then
+                    results[pullNum] = {
+                        tier = tier1,
+                        item = victim,
+                        shouldDelete = true
+                    }
+                end
+            end
+
+            print(string.format("|cffff0000Pull %d: MATCH! %s-%s-%s|r", pullNum, tier1, tier2, tier3))
+        else
+            -- Handle shards for S/SS without match
+            if (tier1 == "S" or tier1 == "SS") or
+               (tier2 == "S" or tier2 == "SS") or
+               (tier3 == "S" or tier3 == "SS") then
+                self.shards = math.min((self.shards or 0) + 1, self.maxShards)
+                CattosShuffleDB.gachaShards = self.shards
+            end
+        end
+    end
+
+    -- Update UI
+    if self.UpdateUI then
+        self:UpdateUI()
+    end
+
+    -- Show results window
+    self:ShowX10Results(results)
+end
+
+-- Start the gacha pull (single pull only now)
+function Gacha:Pull()
     if self.isSpinning then
         print("|cffff0000Already pulling!|r")
         return
@@ -353,11 +474,7 @@ function Gacha:Pull(pullCount)
         return
     end
 
-    -- Store pull count for later use
-    self.currentPullCount = pullCount
-    self.currentPullIndex = 1
-
-    -- Start the first pull
+    -- Do a single pull
     self:DoPull()
 end
 
@@ -684,36 +801,6 @@ function Gacha:OnPullComplete()
     if self.UpdateUI then
         self:UpdateUI()
     end
-
-    -- Check if we have more pulls to do
-    if self.currentPullCount and self.currentPullIndex then
-        if self.currentPullIndex < self.currentPullCount then
-            -- More pulls to do
-            self.currentPullIndex = self.currentPullIndex + 1
-
-            -- Show pull progress
-            print(string.format("|cffffcc00Pull %d/%d complete. Starting next pull...|r",
-                self.currentPullIndex - 1, self.currentPullCount))
-
-            -- Wait a moment before next pull
-            C_Timer.After(1.5, function()
-                -- Only continue if no match (no deletion pending)
-                if not self.pendingDelete then
-                    self:DoPull()
-                else
-                    -- If there's a pending delete, stop the multi-pull
-                    print("|cffff0000Multi-pull stopped due to match! Handle deletion first.|r")
-                    self.currentPullCount = nil
-                    self.currentPullIndex = nil
-                end
-            end)
-        else
-            -- All pulls complete
-            print(string.format("|cff00ff00All %d pulls complete!|r", self.currentPullCount))
-            self.currentPullCount = nil
-            self.currentPullIndex = nil
-        end
-    end
 end
 
 -- Auto-delete item with Delete confirmation
@@ -841,13 +928,6 @@ function Gacha:PerformDeletion()
         else
             print("|cffff0000Failed to pick up equipped item!|r")
         end
-    end
-
-    -- Clear multi-pull if it was active (stop after deletion)
-    if self.currentPullCount and self.currentPullCount > 1 then
-        print("|cffff0000Multi-pull cancelled after deletion.|r")
-        self.currentPullCount = nil
-        self.currentPullIndex = nil
     end
 end
 

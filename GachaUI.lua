@@ -286,7 +286,7 @@ function Gacha:CreateGachaFrame()
     frame.pull10Button:SetHighlightFontObject("GameFontHighlightLarge")
     frame.pull10Button:SetScript("OnClick", function()
         PlaySound(856, "SFX") -- Interface button click sound
-        Gacha:Pull(10)  -- Pull 10 times
+        Gacha:Pull10Fast()  -- Fast x10 pull
     end)
 
     -- Spin status text (shows during animation) - UNDER the pull button
@@ -560,13 +560,7 @@ function Gacha:UpdateGachaUI()
             self.frame.statusText:SetText("|cffffcc00Choosing victim...|r")
         elseif stillSpinning == 3 then
             self.frame.pullButton:SetText(">>> SPINNING <<<")
-            -- Show pull progress if doing multiple pulls
-            if Gacha.currentPullCount and Gacha.currentPullCount > 1 then
-                self.frame.statusText:SetText(string.format("|cffccccccPull %d/%d - All slots spinning...|r",
-                    Gacha.currentPullIndex or 1, Gacha.currentPullCount))
-            else
-                self.frame.statusText:SetText("|cffccccccAll slots spinning...|r")
-            end
+            self.frame.statusText:SetText("|cffccccccAll slots spinning...|r")
         elseif stillSpinning == 2 then
             self.frame.pullButton:SetText(">> SLOWING <<")
             self.frame.statusText:SetText("|cffffcc00Slot 1 locked!|r")
@@ -1024,3 +1018,231 @@ TIER_INFO = {
         hex = "ffff8000"
     }
 }
+
+-- Create x10 results window
+function Gacha:CreateX10ResultsFrame()
+    if self.x10Frame then
+        return self.x10Frame
+    end
+
+    local frame = CreateFrame("Frame", "CattosGachaX10Results", UIParent, "BasicFrameTemplate")
+    frame:SetSize(600, 500)
+    frame:SetPoint("CENTER", 0, 0)
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetFrameStrata("FULLSCREEN_DIALOG")
+    frame:Hide()
+
+    -- Add to ESC close list
+    tinsert(UISpecialFrames, "CattosGachaX10Results")
+
+    -- Title
+    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.title:SetPoint("TOP", frame, "TOP", 0, -35)
+    frame.title:SetText("|cffffcc00>>> x10 PULL RESULTS <<<|r")
+    frame.title:SetFont("Fonts\\FRIZQT__.TTF", 20, "OUTLINE")
+
+    -- Create 10 result slots (2 rows of 5)
+    frame.results = {}
+    local slotSize = 100
+    local spacing = 10
+    local startX = -((5 * slotSize + 4 * spacing) / 2) + (slotSize / 2)
+    local startY = 50
+
+    for i = 1, 10 do
+        local row = math.floor((i - 1) / 5)
+        local col = (i - 1) % 5
+
+        local slot = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+        slot:SetSize(slotSize, slotSize + 40)
+        slot:SetPoint("CENTER", frame, "CENTER", startX + col * (slotSize + spacing), startY - row * (slotSize + 60))
+
+        slot:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
+            tile = false,
+            edgeSize = 12,
+            insets = { left = 3, right = 3, top = 3, bottom = 3 }
+        })
+        slot:SetBackdropColor(0.08, 0.08, 0.15, 0.95)
+
+        -- Pull number
+        slot.pullNum = slot:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        slot.pullNum:SetPoint("TOP", slot, "TOP", 0, -5)
+        slot.pullNum:SetText("#" .. i)
+        slot.pullNum:SetTextColor(0.7, 0.7, 0.7)
+
+        -- Tier banner
+        slot.tierBanner = CreateFrame("Frame", nil, slot, "BackdropTemplate")
+        slot.tierBanner:SetHeight(20)
+        slot.tierBanner:SetPoint("TOP", slot, "TOP", 0, -20)
+        slot.tierBanner:SetPoint("LEFT", slot, "LEFT", 5, 0)
+        slot.tierBanner:SetPoint("RIGHT", slot, "RIGHT", -5, 0)
+        slot.tierBanner:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8x8",
+            edgeFile = "Interface\\Buttons\\WHITE8x8",
+            edgeSize = 1
+        })
+
+        slot.tierText = slot.tierBanner:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        slot.tierText:SetPoint("CENTER", slot.tierBanner, "CENTER", 0, 0)
+
+        -- Item icon button
+        slot.iconButton = CreateFrame("Button", nil, slot)
+        slot.iconButton:SetSize(48, 48)
+        slot.iconButton:SetPoint("CENTER", slot, "CENTER", 0, -5)
+
+        slot.icon = slot.iconButton:CreateTexture(nil, "ARTWORK")
+        slot.icon:SetAllPoints(slot.iconButton)
+        slot.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+
+        -- Item name
+        slot.itemText = slot:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        slot.itemText:SetPoint("BOTTOM", slot, "BOTTOM", 0, 5)
+        slot.itemText:SetWidth(slotSize - 10)
+        slot.itemText:SetWordWrap(true)
+        slot.itemText:SetHeight(30)
+
+        -- DELETE marker for matches
+        slot.deleteMarker = slot:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        slot.deleteMarker:SetPoint("CENTER", slot.icon, "CENTER", 0, 0)
+        slot.deleteMarker:SetText("|cffff0000DELETE|r")
+        slot.deleteMarker:SetFont("Fonts\\FRIZQT__.TTF", 16, "THICKOUTLINE")
+        slot.deleteMarker:Hide()
+
+        -- Tooltip
+        slot.iconButton:SetScript("OnEnter", function(self)
+            if self.itemData then
+                GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+                if self.itemData.link then
+                    GameTooltip:SetHyperlink(self.itemData.link)
+                else
+                    GameTooltip:SetText(self.itemData.name or "Unknown Item", 1, 1, 1)
+                end
+                GameTooltip:Show()
+            end
+        end)
+
+        slot.iconButton:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
+        frame.results[i] = slot
+    end
+
+    -- Summary text
+    frame.summaryText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.summaryText:SetPoint("BOTTOM", frame, "BOTTOM", 0, 80)
+    frame.summaryText:SetText("")
+
+    -- Instructions
+    frame.instructText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    frame.instructText:SetPoint("BOTTOM", frame, "BOTTOM", 0, 50)
+    frame.instructText:SetText("")
+    frame.instructText:SetTextColor(1, 0.2, 0.2)
+
+    -- Close button
+    frame.closeButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.closeButton:SetSize(100, 30)
+    frame.closeButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 15)
+    frame.closeButton:SetText("Close")
+    frame.closeButton:SetScript("OnClick", function()
+        PlaySound(855, "SFX")
+        frame:Hide()
+    end)
+
+    self.x10Frame = frame
+    return frame
+end
+
+-- Show x10 results
+function Gacha:ShowX10Results(results)
+    if not self.x10Frame then
+        self:CreateX10ResultsFrame()
+    end
+
+    local frame = self.x10Frame
+    local toDelete = {}
+    local deleteCount = 0
+
+    -- Display all 10 results
+    for i = 1, 10 do
+        local result = results[i]
+        local slot = frame.results[i]
+
+        if result then
+            -- Set tier color
+            local tierInfo = TIER_INFO[result.tier]
+            slot.tierBanner:SetBackdropColor(tierInfo.color.r, tierInfo.color.g, tierInfo.color.b, 0.9)
+            slot.tierBanner:SetBackdropBorderColor(tierInfo.color.r, tierInfo.color.g, tierInfo.color.b, 1)
+            slot.tierText:SetText(result.tier)
+
+            -- Set item info
+            if result.item then
+                slot.icon:SetTexture(result.item.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+                slot.iconButton.itemData = result.item
+
+                local itemName = result.item.name or "Unknown"
+                if string.len(itemName) > 15 then
+                    itemName = string.sub(itemName, 1, 12) .. "..."
+                end
+
+                local qualityColor = ITEM_QUALITY_COLORS[result.item.quality or 1]
+                slot.itemText:SetTextColor(qualityColor.r, qualityColor.g, qualityColor.b)
+                slot.itemText:SetText(itemName)
+            end
+
+            -- Mark if it's part of a match
+            if result.shouldDelete then
+                slot:SetBackdropBorderColor(1, 0, 0, 1)
+                slot.deleteMarker:Show()
+                table.insert(toDelete, result.item)
+                deleteCount = deleteCount + 1
+            else
+                slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
+                slot.deleteMarker:Hide()
+            end
+        end
+    end
+
+    -- Update summary
+    if deleteCount > 0 then
+        frame.summaryText:SetText(string.format("|cffff0000%d MATCHES FOUND! %d items marked for deletion!|r",
+            #results.matches, deleteCount))
+        frame.instructText:SetText("|cffff0000Manually delete ALL marked items!|r")
+
+        -- Store items to delete
+        self.x10DeleteList = toDelete
+
+        -- Show manual delete instructions after a moment
+        C_Timer.After(2, function()
+            if self.x10DeleteList and #self.x10DeleteList > 0 then
+                self:ShowX10DeleteInstructions()
+            end
+        end)
+    else
+        frame.summaryText:SetText("|cff00ff00No matches! All items are safe!|r")
+        frame.instructText:SetText("")
+        self.x10DeleteList = nil
+    end
+
+    frame:Show()
+    PlaySound(3332, "SFX")
+end
+
+-- Show deletion instructions for x10
+function Gacha:ShowX10DeleteInstructions()
+    if not self.x10DeleteList or #self.x10DeleteList == 0 then return end
+
+    print("|cffff0000=== x10 PULL DELETIONS REQUIRED ===|r")
+    print(string.format("|cffffcc00You must delete %d items:|r", #self.x10DeleteList))
+
+    for i, item in ipairs(self.x10DeleteList) do
+        print(string.format("  %d. %s", i, item.link or item.name))
+    end
+
+    print("|cffff0000Delete these items manually from your bags!|r")
+end
