@@ -1026,7 +1026,7 @@ function Gacha:CreateX10ResultsFrame()
     end
 
     local frame = CreateFrame("Frame", "CattosGachaX10Results", UIParent, "BasicFrameTemplate")
-    frame:SetSize(600, 500)
+    frame:SetSize(600, 550)  -- Made taller for more space
     frame:SetPoint("CENTER", 0, 0)
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -1041,7 +1041,7 @@ function Gacha:CreateX10ResultsFrame()
 
     -- Title
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    frame.title:SetPoint("TOP", frame, "TOP", 0, -35)
+    frame.title:SetPoint("TOP", frame, "TOP", 0, -40)  -- More space from top edge
     frame.title:SetText("|cffffcc00>>> x10 PULL RESULTS <<<|r")
     frame.title:SetFont("Fonts\\FRIZQT__.TTF", 20, "OUTLINE")
 
@@ -1050,7 +1050,7 @@ function Gacha:CreateX10ResultsFrame()
     local slotSize = 100
     local spacing = 10
     local startX = -((5 * slotSize + 4 * spacing) / 2) + (slotSize / 2)
-    local startY = 50
+    local startY = 80  -- Moved down to give more space from title
 
     for i = 1, 10 do
         local row = math.floor((i - 1) / 5)
@@ -1106,11 +1106,12 @@ function Gacha:CreateX10ResultsFrame()
         slot.itemText:SetWordWrap(true)
         slot.itemText:SetHeight(30)
 
-        -- DELETE marker for matches
-        slot.deleteMarker = slot:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        slot.deleteMarker:SetPoint("CENTER", slot.icon, "CENTER", 0, 0)
+        -- DELETE marker for matches (on the iconButton so it's above the icon)
+        slot.deleteMarker = slot.iconButton:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        slot.deleteMarker:SetPoint("CENTER", slot.iconButton, "CENTER", 0, 0)
         slot.deleteMarker:SetText("|cffff0000DELETE|r")
-        slot.deleteMarker:SetFont("Fonts\\FRIZQT__.TTF", 16, "THICKOUTLINE")
+        slot.deleteMarker:SetFont("Fonts\\FRIZQT__.TTF", 14, "THICKOUTLINE")
+        slot.deleteMarker:SetDrawLayer("OVERLAY", 7)  -- Highest layer
         slot.deleteMarker:Hide()
 
         -- Tooltip
