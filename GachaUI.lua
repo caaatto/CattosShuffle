@@ -1212,8 +1212,19 @@ function Gacha:ShowX10Results(results)
             if result.shouldDelete then
                 slot:SetBackdropBorderColor(1, 0, 0, 1)
                 slot.deleteMarker:Show()
-                table.insert(toDelete, result.item)
-                deleteCount = deleteCount + 1
+
+                -- Show delete count for stacks
+                if result.deleteCount and result.deleteCount > 1 then
+                    slot.deleteMarker:SetText(tostring(result.deleteCount))
+                    slot.deleteMarker:SetFont("Fonts\\FRIZQT__.TTF", 24, "THICKOUTLINE")
+                else
+                    slot.deleteMarker:SetText("X")
+                    slot.deleteMarker:SetFont("Fonts\\FRIZQT__.TTF", 32, "THICKOUTLINE")
+                end
+
+                -- Store item with its delete count
+                table.insert(toDelete, {item = result.item, count = result.deleteCount or 1})
+                deleteCount = deleteCount + (result.deleteCount or 1)
             else
                 slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
                 slot.deleteMarker:Hide()
@@ -1251,10 +1262,22 @@ function Gacha:ShowX10DeleteInstructions()
     if not self.x10DeleteList or #self.x10DeleteList == 0 then return end
 
     print("|cffff0000=== x10 PULL DELETIONS REQUIRED ===|r")
-    print(string.format("|cffffcc00You must delete %d items:|r", #self.x10DeleteList))
 
-    for i, item in ipairs(self.x10DeleteList) do
-        print(string.format("  %d. %s", i, item.link or item.name))
+    local totalItems = 0
+    for _, entry in ipairs(self.x10DeleteList) do
+        totalItems = totalItems + (entry.count or 1)
+    end
+
+    print(string.format("|cffffcc00You must delete %d items (from %d stacks):|r", totalItems, #self.x10DeleteList))
+
+    for i, entry in ipairs(self.x10DeleteList) do
+        local item = entry.item
+        local count = entry.count or 1
+        if count > 1 then
+            print(string.format("  %d. %dx %s", i, count, item.link or item.name))
+        else
+            print(string.format("  %d. %s", i, item.link or item.name))
+        end
     end
 
     print("|cffff0000Delete these items manually from your bags!|r")

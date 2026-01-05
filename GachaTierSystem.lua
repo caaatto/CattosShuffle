@@ -570,6 +570,12 @@ function Gacha:Pull10Fast()
                 victim = pullResult.items[math.random(1, 3)]
             end
 
+            -- Determine delete count for stackable items
+            local deleteCount = 1
+            if victim and victim.stackCount and victim.stackCount > 1 then
+                deleteCount = math.random(1, victim.stackCount)
+            end
+
             -- Add to deleted items list
             if victim then
                 table.insert(results.deletedItems, victim)
@@ -580,6 +586,7 @@ function Gacha:Pull10Fast()
                 tier = tier1,  -- All 3 match, so tier1 = tier2 = tier3
                 item = victim,
                 shouldDelete = true,
+                deleteCount = deleteCount,  -- Add the delete count
                 allTiers = string.format("%s-%s-%s", tier1, tier2, tier3)
             }
 
