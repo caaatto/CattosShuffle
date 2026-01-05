@@ -118,6 +118,21 @@ function Gacha:GetItemTier(item)
     -- Start with base tier
     local tier = "C"
 
+    -- PRIORITY 1: Check if equipped first (highest priority)
+    if isEquipped then
+        -- Equipped items are always at least S tier
+        tier = "S"
+
+        -- If Epic/Legendary equipped, upgrade to SS tier
+        if quality >= 4 then
+            tier = "SS"
+        end
+
+        -- Return immediately for equipped items
+        return tier
+    end
+
+    -- PRIORITY 2: Non-equipped items
     -- Quest items are B tier
     if item.isQuest or IsQuestItem(item.itemId) then
         tier = "B"
@@ -131,16 +146,6 @@ function Gacha:GetItemTier(item)
            baseType == _G["ARMOR"] or baseType == _G["WEAPON"] or  -- Localized globals
            (item.equipSlot and item.equipSlot ~= "") then  -- Alternative check
         tier = "A"
-
-        -- If currently equipped, upgrade to S tier
-        if isEquipped then
-            tier = "S"
-
-            -- If Epic/Legendary equipped, upgrade to SS tier
-            if quality >= 4 then
-                tier = "SS"
-            end
-        end
     -- Trade goods, reagents etc are C tier
     else
         tier = "C"
