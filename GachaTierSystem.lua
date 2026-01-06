@@ -465,26 +465,30 @@ function Gacha:Pull10Fast()
 
     -- Process all 10 pulls at once
     for pullNum = 1, 10 do
-        -- Increment counters for each pull
+        -- Pre-calculate what the counter WOULD be after increment
+        local nextSpinCount = self.spinCount + 1
+        local nextBTierCount = self.bTierPityCount + 1
+
+        -- Check pity systems for this pull (using pre-calculated values)
+        local forcedPityTier = nil
+
+        -- Check if we've passed the 50-spin threshold (not just equal)
+        if nextSpinCount >= self.pityThreshold then
+            forcedPityTier = math.random() < 0.5 and "S" or "A"
+            print(string.format("|cffffcc00Pull %d: 50-SPIN PITY ACTIVE! (Spin %d) Forcing %s tier triple!|r",
+                pullNum, nextSpinCount, forcedPityTier))
+        -- Check B-tier pity (only if main pity isn't active)
+        elseif nextBTierCount >= self.bTierPityThreshold then
+            forcedPityTier = "B"
+            print(string.format("|cff99ccffPull %d: B-TIER PITY! (Count %d) Forcing B tier triple!|r",
+                pullNum, nextBTierCount))
+        end
+
+        -- NOW increment counters (after pity check, so it's consistent with single pulls)
         self.spinCount = self.spinCount + 1
         CattosShuffleDB.gachaSpinCount = self.spinCount
         self.bTierPityCount = self.bTierPityCount + 1
         CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
-
-        -- Check pity systems for this pull
-        local forcedPityTier = nil
-
-        -- Check if we've passed the 50-spin threshold (not just equal)
-        if self.spinCount >= self.pityThreshold then
-            forcedPityTier = math.random() < 0.5 and "S" or "A"
-            print(string.format("|cffffcc00Pull %d: 50-SPIN PITY ACTIVE! (Spin %d) Forcing %s tier triple!|r",
-                pullNum, self.spinCount, forcedPityTier))
-        -- Check B-tier pity (only if main pity isn't active)
-        elseif self.bTierPityCount >= self.bTierPityThreshold then
-            forcedPityTier = "B"
-            print(string.format("|cff99ccffPull %d: B-TIER PITY! (Count %d) Forcing B tier triple!|r",
-                pullNum, self.bTierPityCount))
-        end
 
         -- Get 3 random tiers/items for this pull
         local pullResult = {
@@ -665,19 +669,14 @@ function Gacha:DoPull()
         end
     end
 
-    -- Increment spin counter
-    self.spinCount = self.spinCount + 1
-    CattosShuffleDB.gachaSpinCount = self.spinCount
-
-    -- Increment B-Tier pity counter
-    self.bTierPityCount = self.bTierPityCount + 1
-    CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
+    -- NOTE: Pity counters moved to OnPullComplete() to avoid counting interrupted spins
+    -- We still need to check current pity state for forced tiers
 
     -- Check pity systems (50-spin has priority over B-Tier)
     local forcedPityTier = nil
 
-    -- Check if we hit the 50 spin pity FIRST (higher priority)
-    if self.spinCount >= self.pityThreshold then
+    -- Check if NEXT spin would hit the 50 spin pity (check current count + 1)
+    if (self.spinCount + 1) >= self.pityThreshold then
         -- 50/50 between S and A tier
         if math.random() < 0.5 then
             forcedPityTier = "S"
@@ -687,22 +686,16 @@ function Gacha:DoPull()
             print("|cff9933cc>>> 50-SPIN PITY: A TIER GUARANTEED! <<<|r")
         end
 
-        -- Reset spin counter
-        self.spinCount = 0
-        CattosShuffleDB.gachaSpinCount = 0
-
-        -- NOTE: B-Tier pity continues counting independently!
+        -- Mark that we should reset main pity after completion
+        self.pendingMainPityReset = true
 
     -- Check for B-Tier pity (every 10 rolls) - only if 50-spin didn't trigger
-    elseif self.bTierPityCount >= self.bTierPityThreshold then
+    elseif (self.bTierPityCount + 1) >= self.bTierPityThreshold then
         forcedPityTier = "B"
         print("|cff99ccff>>> 10-ROLL PITY: B TIER TRIPLE GUARANTEED! <<<|r")
 
-        -- Reset B-Tier pity counter
-        self.bTierPityCount = 0
-        CattosShuffleDB.gachaBTierPityCount = 0
-
-        -- NOTE: 50-spin pity continues counting independently!
+        -- Mark that we should reset B-tier pity after completion
+        self.pendingBTierPityReset = true
     end
 
     -- Determine results for 3 slots
@@ -885,6 +878,26 @@ end
 function Gacha:OnPullComplete()
     -- isSpinning already set to false in AnimatePull
 
+    -- Increment pity counters NOW (after successful completion)
+    self.spinCount = self.spinCount + 1
+    CattosShuffleDB.gachaSpinCount = self.spinCount
+
+    self.bTierPityCount = self.bTierPityCount + 1
+    CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
+
+    -- Check for pending pity resets from DoPull
+    if self.pendingMainPityReset then
+        self.spinCount = 0
+        CattosShuffleDB.gachaSpinCount = 0
+        self.pendingMainPityReset = false
+    end
+
+    if self.pendingBTierPityReset then
+        self.bTierPityCount = 0
+        CattosShuffleDB.gachaBTierPityCount = 0
+        self.pendingBTierPityReset = false
+    end
+
     -- Check for matches
     local tier1 = self.slots[1].tier
     local tier2 = self.slots[2].tier
@@ -912,7 +925,7 @@ function Gacha:OnPullComplete()
         local tierInfo = TIER_INFO[tier1]
         print(string.format("|c%s>>> TRIPLE %s! <<<|r", tierInfo.hex, tierInfo.name))
 
-        -- Reset appropriate pity counters based on tier
+        -- Reset appropriate pity counters based on tier (in addition to pity resets)
         if tier1 == "B" then
             -- Reset B-Tier pity on B triple
             self.bTierPityCount = 0
