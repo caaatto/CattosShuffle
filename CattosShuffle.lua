@@ -537,9 +537,17 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         if CattosShuffle.RefreshEquipment then
             CattosShuffle:RefreshEquipment()
         end
+        -- Also refresh bag icons when equipment changes (bags are equipment!)
+        if CattosShuffle.RefreshBagIcons then
+            CattosShuffle:RefreshBagIcons()
+        end
     elseif event == "BAG_UPDATE" then
         if CattosShuffle.RefreshBags then
             CattosShuffle:RefreshBags()
+        end
+        -- Also refresh bag icons when bags update
+        if CattosShuffle.RefreshBagIcons then
+            CattosShuffle:RefreshBagIcons()
         end
     elseif event == "PLAYER_REGEN_DISABLED" then
         -- Entering combat - hide the UI if it's visible

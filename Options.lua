@@ -23,9 +23,15 @@ function CattosShuffle:CreateOptionsPanel()
     author:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     author:SetText(L["CREATED_BY"])
 
+    -- Version info
+    local version = GetAddOnMetadata("CattosShuffle", "Version") or "Unknown"
+    local versionText = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    versionText:SetPoint("TOPLEFT", author, "BOTTOMLEFT", 0, -4)
+    versionText:SetText("|cff888888Version: " .. version .. "|r")
+
     -- Ko-fi support text
     local supportText = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    supportText:SetPoint("TOPLEFT", author, "BOTTOMLEFT", 0, -8)
+    supportText:SetPoint("TOPLEFT", versionText, "BOTTOMLEFT", 0, -8)
     supportText:SetText(L["SUPPORT_DEVELOPMENT"])
 
     -- Ko-fi Button (opens a dialog)

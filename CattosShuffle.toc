@@ -14,5 +14,7 @@ RussianRouletteSlots.lua
 UI.lua
 RussianRouletteUI.lua
 Algorithms.lua
+AmmoHandler.lua
+StackHandler.lua
 Options.lua
 MinimapButton.lua

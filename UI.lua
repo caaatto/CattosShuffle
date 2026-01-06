@@ -41,6 +41,13 @@ function CattosShuffle:InitializeUI()
     title:SetShadowOffset(2, -2)
     title:SetShadowColor(0, 0, 0, 1)
 
+    -- Version display
+    local version = GetAddOnMetadata("CattosShuffle", "Version") or "Unknown"
+    local versionText = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    versionText:SetPoint("TOP", title, "BOTTOM", 0, -2)
+    versionText:SetText("|cff666666v" .. version .. "|r")
+    versionText:SetAlpha(0.7)
+
     -- Close Button
     local closeBtn = CreateFrame("Button", nil, self.frame, "UIPanelCloseButton")
     closeBtn:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", 0, 0)
@@ -100,6 +107,12 @@ function CattosShuffle:InitializeUI()
             PlaySound(839, "SFX")  -- Character Info Open sound
             frame:Show()
             CattosShuffle:RefreshUI()
+            -- Delay bag icon refresh to ensure items are loaded
+            C_Timer.After(0.1, function()
+                if CattosShuffle.RefreshBagIcons then
+                    CattosShuffle:RefreshBagIcons()
+                end
+            end)
         end
     end
 end
@@ -535,20 +548,40 @@ function CattosShuffle:SetupBagButton(button, bagIndex)
     button.icon:SetSize(SLOT_SIZE * 1.5, SLOT_SIZE * 1.5)
     button.icon:SetPoint("CENTER")
 
-    -- Get the actual bag texture
-    local bagTexture = "Interface/ICONS/INV_Misc_Bag_07"  -- Default bag icon
-    if bagIndex == 0 then
-        -- Backpack always uses the default backpack icon
-        bagTexture = "Interface/ICONS/INV_Misc_Bag_08"  -- Backpack icon
-    else
-        -- Get the actual equipped bag icon
-        local bagSlot = 19 + bagIndex  -- Bag slots are 20-23 (bag1-bag4)
-        local itemTexture = GetInventoryItemTexture("player", bagSlot)
-        if itemTexture then
-            bagTexture = itemTexture
+    -- Function to update bag texture
+    button.UpdateIcon = function(self)
+        local bagTexture = "Interface/ICONS/INV_Misc_Bag_07"  -- Default bag icon
+        if self.bagIndex == 0 then
+            -- Backpack always uses the default backpack icon
+            bagTexture = "Interface/ICONS/INV_Misc_Bag_08"  -- Backpack icon
+        else
+            -- Use the CONTAINER_ID_TO_INVENTORY_ID mapping
+            -- In Classic Era: Bag1 = CONTAINER_BAG_OFFSET + 1, etc.
+            local CONTAINER_BAG_OFFSET = 19  -- This is the offset for bags in Classic
+            local inventoryId = CONTAINER_BAG_OFFSET + self.bagIndex
+
+            -- Also try using GetInventorySlotInfo to get the correct slot
+            local slotName = "Bag" .. (self.bagIndex - 1) .. "Slot"  -- Bag0Slot, Bag1Slot, etc.
+            local slotId = GetInventorySlotInfo(slotName)
+
+            if slotId then
+                local texture = GetInventoryItemTexture("player", slotId)
+                if texture then
+                    bagTexture = texture
+                end
+            else
+                -- Fallback: Try direct inventory ID
+                local texture = GetInventoryItemTexture("player", inventoryId)
+                if texture then
+                    bagTexture = texture
+                end
+            end
         end
+        self.icon:SetTexture(bagTexture)
     end
-    button.icon:SetTexture(bagTexture)
+
+    -- Set initial icon
+    button:UpdateIcon()
 
     -- Text
     button.text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -737,26 +770,14 @@ function CattosShuffle:RefreshEquipment()
 end
 
 function CattosShuffle:RefreshBagIcons()
-    if not self.bagPanel or not self.bagPanel.bags then return end
-
-    for bagIndex = 0, 4 do
-        local bag = self.bagPanel.bags[bagIndex]
-        if bag then
-            local bagTexture = "Interface/ICONS/INV_Misc_Bag_07"  -- Default bag icon
-            if bagIndex == 0 then
-                -- Backpack always uses the default backpack icon
-                bagTexture = "Interface/ICONS/INV_Misc_Bag_08"  -- Backpack icon
-            else
-                -- Get the actual equipped bag icon
-                -- Classic Era: Bag slots are inventory slots 20-23
-                -- Bag 1 = slot 20, Bag 2 = slot 21, Bag 3 = slot 22, Bag 4 = slot 23
-                local bagSlot = 19 + bagIndex  -- This gives us 20-23 for bags 1-4
-                local itemTexture = GetInventoryItemTexture("player", bagSlot)
-                if itemTexture then
-                    bagTexture = itemTexture
-                end
+    -- Update bag icons in the unified panel (main UI)
+    if self.bagPanel and self.bagPanel.bags then
+        for bagIndex = 0, 4 do
+            local bag = self.bagPanel.bags[bagIndex]
+            if bag and bag.UpdateIcon then
+                -- Use the UpdateIcon method to refresh the bag texture
+                bag:UpdateIcon()
             end
-            bag.icon:SetTexture(bagTexture)
         end
     end
 end
