@@ -1596,6 +1596,20 @@ function Gacha:Initialize()
         self.spinCount = 0
     end
 
+    -- Load saved B-Tier pity count
+    if CattosShuffleDB and CattosShuffleDB.gachaBTierPityCount then
+        self.bTierPityCount = CattosShuffleDB.gachaBTierPityCount
+    else
+        self.bTierPityCount = 0
+    end
+
+    -- Setup x10 animation after a small delay to ensure UI is loaded
+    C_Timer.After(0.5, function()
+        if self.SetupX10Animation then
+            self:SetupX10Animation()
+        end
+    end)
+
     -- Register combat events
     local combatFrame = CreateFrame("Frame")
     combatFrame:RegisterEvent("PLAYER_REGEN_DISABLED")  -- Entering combat

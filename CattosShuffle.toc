@@ -10,6 +10,7 @@ Localization.lua
 CattosShuffle.lua
 GachaTierSystem.lua
 GachaUI.lua
+GachaX10AnimationCompact.lua
 RussianRouletteSlots.lua
 UI.lua
 RussianRouletteUI.lua

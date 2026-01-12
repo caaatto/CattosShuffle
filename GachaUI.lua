@@ -979,6 +979,11 @@ function Gacha:Toggle()
         self:BuildItemPool()
         self:UpdateGachaUI()
         self.frame:Show() -- OnShow will play open sound
+
+        -- Setup x10 animation hook when window opens
+        if self.SetupX10Animation then
+            self:SetupX10Animation()
+        end
     end
 end
 
@@ -1257,8 +1262,8 @@ function Gacha:ShowX10Results(results)
     PlaySound(3332, "SFX")
 end
 
--- Show deletion instructions for x10
-function Gacha:ShowX10DeleteInstructions()
+-- Show deletion instructions for x10 (OLD VERSION - kept for compatibility)
+function Gacha:ShowX10DeleteInstructionsOld()
     if not self.x10DeleteList or #self.x10DeleteList == 0 then return end
 
     print("|cffff0000=== x10 PULL DELETIONS REQUIRED ===|r")
