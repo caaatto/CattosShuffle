@@ -599,6 +599,42 @@ SlashCmdList["CATTOSGACHA"] = function(msg)
     end
 end
 
+-- Standalone command for setting S-tier pity
+SLASH_SHUFFLESETPITYS1 = "/shufflesetpityS"
+SLASH_SHUFFLESETPITYS2 = "/shufflesetpity"
+SLASH_SHUFFLESETPITYS3 = "/setpityS"
+SLASH_SHUFFLESETPITYS4 = "/setpity"
+
+SlashCmdList["SHUFFLESETPITYS"] = function(msg)
+    local value = msg:match("^(%d+)")
+    if value then
+        local pitySetting = tonumber(value)
+        if pitySetting and pitySetting >= 0 and pitySetting <= 50 then
+            if CattosShuffle and CattosShuffle.Gacha then
+                CattosShuffle.Gacha.spinCount = pitySetting
+                CattosShuffleDB.gachaSpinCount = pitySetting
+                print(string.format("|cff00ff00S-Tier pity counter set to: %d/%d|r", pitySetting, CattosShuffle.Gacha.pityThreshold))
+                -- Update UI if it's open
+                if CattosShuffle.Gacha.UpdateUI then
+                    CattosShuffle.Gacha:UpdateUI()
+                end
+            else
+                print("|cffff0000Gacha module not loaded!|r")
+            end
+        else
+            print("|cffff0000Invalid pity value! Must be between 0 and 50.|r")
+        end
+    else
+        print("|cffffcc00Usage: /shufflesetpityS <0-50>|r")
+        print("|cffffcc00Alternative commands: /setpityS, /setpity, /shufflesetpity|r")
+        if CattosShuffle and CattosShuffle.Gacha then
+            print(string.format("|cffffcc00Current S-Tier pity: %d/%d|r",
+                CattosShuffle.Gacha.spinCount or 0,
+                CattosShuffle.Gacha.pityThreshold or 50))
+        end
+    end
+end
+
 SlashCmdList["CATTOS"] = function(msg)
     local cmd = msg:lower():trim()
 
@@ -615,6 +651,34 @@ SlashCmdList["CATTOS"] = function(msg)
     elseif cmd == "gacha" or cmd == "pull" then
         if CattosShuffle.Gacha then
             CattosShuffle.Gacha:Toggle()
+        end
+    elseif cmd:match("^setpitys") or cmd:match("^setpity") then
+        -- Handle /cattos setpityS <number> or /cattos setpity <number>
+        local value = cmd:match("^setpitys?%s+(%d+)")
+        if value then
+            local pitySetting = tonumber(value)
+            if pitySetting and pitySetting >= 0 and pitySetting <= 50 then
+                if CattosShuffle.Gacha then
+                    CattosShuffle.Gacha.spinCount = pitySetting
+                    CattosShuffleDB.gachaSpinCount = pitySetting
+                    print(string.format("|cff00ff00S-Tier pity counter set to: %d/%d|r", pitySetting, CattosShuffle.Gacha.pityThreshold))
+                    -- Update UI if it's open
+                    if CattosShuffle.Gacha.UpdateUI then
+                        CattosShuffle.Gacha:UpdateUI()
+                    end
+                else
+                    print("|cffff0000Gacha module not loaded!|r")
+                end
+            else
+                print("|cffff0000Invalid pity value! Must be between 0 and 50.|r")
+            end
+        else
+            print("|cffffcc00Usage: /cattos setpityS <0-50>|r")
+            if CattosShuffle.Gacha then
+                print(string.format("|cffffcc00Current S-Tier pity: %d/%d|r",
+                    CattosShuffle.Gacha.spinCount or 0,
+                    CattosShuffle.Gacha.pityThreshold or 50))
+            end
         end
     elseif cmd == "roulette" or cmd == "rr" or cmd == "slots" then
         CattosShuffle.RussianRoulette:Toggle()
@@ -652,8 +716,10 @@ SlashCmdList["CATTOS"] = function(msg)
         print("  " .. L["CMD_DELETE"])
         print("  " .. L["CMD_CHOICE"])
         print("  |cffffcc00/cattos gacha|r - Open Gacha Pull System")
+        print("  |cffffcc00/cattos setpityS <0-50>|r - Set S-Tier pity counter")
         print("  |cffff0000/cattos roulette|r - Open Russian Roulette slots")
         print("  " .. L["HELP_STOP"])
         print("  " .. L["HELP_SOUND"])
+        print("  |cff888888Standalone: /shufflesetpityS, /setpityS, /setpity|r")
     end
 end

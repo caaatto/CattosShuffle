@@ -155,7 +155,147 @@ function Gacha:GetItemTier(item)
            subType == "Devices" or subType == "Geräte" then
         tier = "B"
 
-    -- A TIER: Equipable items (Not currently worn)
+    -- A TIER: Equipable items, Pets, Mounts (Not currently worn)
+    -- Companion Pets - Check by name FIRST (most reliable for WoW Classic and different language clients)
+    -- In WoW Classic, pets might just be "Miscellaneous" items without proper subtype
+    elseif item.name and (
+               -- English pet names (Classic WoW complete list)
+               string.find(item.name:lower(), "cat carrier") or  -- Multiple cat variants
+               string.find(item.name:lower(), "parrot cage") or  -- Multiple parrot variants
+               string.find(item.name:lower(), "rabbit crate") or
+               string.find(item.name:lower(), "turtle box") or
+               string.find(item.name:lower(), "rat cage") or
+               string.find(item.name:lower(), "prairie dog whistle") or
+               string.find(item.name:lower(), "cockroach") or
+               string.find(item.name:lower(), "ancona chicken") or
+               string.find(item.name:lower(), "worg pup") or
+               string.find(item.name:lower(), "worg carrier") or
+               string.find(item.name:lower(), "smolderweb carrier") or
+               string.find(item.name:lower(), "piglet's collar") or  -- Mr. Wiggles
+               string.find(item.name:lower(), "great horned owl") or
+               string.find(item.name:lower(), "hawk owl") or
+               string.find(item.name:lower(), "crimson snake") or
+               string.find(item.name:lower(), "black kingsnake") or
+               string.find(item.name:lower(), "brown snake") or
+               string.find(item.name:lower(), "wood frog box") or
+               string.find(item.name:lower(), "tree frog box") or
+               string.find(item.name:lower(), "sprite darter egg") or
+               string.find(item.name:lower(), "chicken egg") or
+               string.find(item.name:lower(), "westfall chicken") or
+               string.find(item.name:lower(), "pet bombling") or
+               string.find(item.name:lower(), "lil' smoky") or
+               string.find(item.name:lower(), "lifelike mechanical toad") or
+               string.find(item.name:lower(), "mechanical squirrel") or
+               string.find(item.name:lower(), "mechanical chicken") or
+               string.find(item.name:lower(), "dark whelpling") or
+               string.find(item.name:lower(), "tiny crimson whelpling") or
+               string.find(item.name:lower(), "tiny emerald whelpling") or
+               string.find(item.name:lower(), "azure whelpling") or
+               string.find(item.name:lower(), "disgusting oozeling") or
+               string.find(item.name:lower(), "red helper box") or  -- Winter's Little Helper
+               string.find(item.name:lower(), "green helper box") or  -- Winter Reindeer
+               string.find(item.name:lower(), "snowman kit") or
+               string.find(item.name:lower(), "jingling bell") or  -- Winter Reindeer
+               string.find(item.name:lower(), "captured flame") or
+               string.find(item.name:lower(), "truesilver shafted arrow") or  -- Peddlefeet
+               string.find(item.name:lower(), "silver shafted arrow") or  -- Peddlefeet
+               string.find(item.name:lower(), "blood parrot") or
+               string.find(item.name:lower(), "mini diablo") or  -- Collector's Edition
+               string.find(item.name:lower(), "panda cub") or  -- Collector's Edition
+               string.find(item.name:lower(), "panda collar") or  -- Collector's Edition
+               string.find(item.name:lower(), "zergling leash") or  -- Collector's Edition
+               string.find(item.name:lower(), "diablo stone") or  -- Collector's Edition
+               string.find(item.name:lower(), "banana charm") or  -- Collector's Edition
+               string.find(item.name:lower(), "pet") and string.find(item.name:lower(), "carrier") or
+               -- German pet names (Classic WoW vollständige Liste)
+               string.find(item.name:lower(), "katzenträger") or
+               string.find(item.name:lower(), "katzentransportkorb") or
+               string.find(item.name:lower(), "papageienkäfig") or
+               string.find(item.name:lower(), "schlangenkäfig") or
+               string.find(item.name:lower(), "kaninchenkiste") or
+               string.find(item.name:lower(), "hasenkiste") or
+               string.find(item.name:lower(), "schildkrötenbox") or
+               string.find(item.name:lower(), "schildkrötenkiste") or
+               string.find(item.name:lower(), "eulenpfeife") or
+               string.find(item.name:lower(), "hornuhu") or  -- Great Horned Owl
+               string.find(item.name:lower(), "habichtseule") or  -- Hawk Owl
+               string.find(item.name:lower(), "sperbereule") or  -- Hawk Owl alternative
+               string.find(item.name:lower(), "rattenkäfig") or
+               string.find(item.name:lower(), "präriehundpfeife") or
+               string.find(item.name:lower(), "kakerlake") or
+               string.find(item.name:lower(), "schabe") or
+               string.find(item.name:lower(), "ancona") or
+               string.find(item.name:lower(), "worgwelpe") or
+               string.find(item.name:lower(), "worgträger") or
+               string.find(item.name:lower(), "schwelnetztransporter") or
+               string.find(item.name:lower(), "ferkelhalsband") or  -- Piglet's Collar
+               string.find(item.name:lower(), "purpurrote schlange") or  -- Crimson Snake
+               string.find(item.name:lower(), "schwarze königsnatter") or  -- Black Kingsnake
+               string.find(item.name:lower(), "braune schlange") or  -- Brown Snake
+               string.find(item.name:lower(), "waldlaubfroschkiste") or  -- Wood Frog Box
+               string.find(item.name:lower(), "baumfroschkiste") or  -- Tree Frog Box
+               string.find(item.name:lower(), "feendrachen") or  -- Sprite Darter
+               string.find(item.name:lower(), "hühnerei") or  -- Chicken Egg
+               string.find(item.name:lower(), "westfall-huhn") or  -- Westfall Chicken
+               string.find(item.name:lower(), "haustierbömbling") or  -- Pet Bombling
+               string.find(item.name:lower(), "kleine rauchmaschine") or  -- Lil' Smoky
+               string.find(item.name:lower(), "lebensechte mechanische kröte") or  -- Lifelike Mechanical Toad
+               string.find(item.name:lower(), "mechanisches eichhörnchen") or  -- Mechanical Squirrel
+               string.find(item.name:lower(), "mechanisches huhn") or  -- Mechanical Chicken
+               string.find(item.name:lower(), "dunkler welpling") or  -- Dark Whelpling
+               string.find(item.name:lower(), "winziger purpurroter welpling") or  -- Tiny Crimson Whelpling
+               string.find(item.name:lower(), "winziger smaragdgrüner welpling") or  -- Tiny Emerald Whelpling
+               string.find(item.name:lower(), "azurblauer welpling") or  -- Azure Whelpling
+               string.find(item.name:lower(), "ekelhaftes schleimchen") or  -- Disgusting Oozeling
+               string.find(item.name:lower(), "roter helferkasten") or  -- Red Helper Box
+               string.find(item.name:lower(), "grüner helferkasten") or  -- Green Helper Box
+               string.find(item.name:lower(), "schneemannbausatz") or  -- Snowman Kit
+               string.find(item.name:lower(), "schellenglocke") or  -- Jingling Bell
+               string.find(item.name:lower(), "eingefangene flamme") or  -- Captured Flame
+               string.find(item.name:lower(), "wahrer silberpfeil") or  -- Truesilver Shafted Arrow
+               string.find(item.name:lower(), "silberpfeil") or  -- Silver Shafted Arrow
+               string.find(item.name:lower(), "blutpapagei") or  -- Blood Parrot
+               string.find(item.name:lower(), "mini-diablo") or  -- Collector's Edition
+               string.find(item.name:lower(), "pandajunges") or  -- Collector's Edition
+               string.find(item.name:lower(), "pandahalsband") or  -- Collector's Edition
+               string.find(item.name:lower(), "zergling-leine") or  -- Collector's Edition
+               string.find(item.name:lower(), "diablostein") or  -- Collector's Edition
+               string.find(item.name:lower(), "bananenanhänger") or  -- Collector's Edition
+               string.find(item.name:lower(), "haustierträger") or
+               string.find(item.name:lower(), "haustiertransportbox") or
+               -- More specific German pet names
+               string.find(item.name:lower(), "siamkatze") or
+               string.find(item.name:lower(), "bombaykatze") or
+               string.find(item.name:lower(), "orangefarbene tigerkatze") or
+               string.find(item.name:lower(), "silbergetigerte katze") or
+               string.find(item.name:lower(), "maine coon") or
+               string.find(item.name:lower(), "schneeschuh") or
+               string.find(item.name:lower(), "ara") or  -- Macaw parrots
+               string.find(item.name:lower(), "hyazinthara") or
+               string.find(item.name:lower(), "grüner flügelara") or
+               string.find(item.name:lower(), "scharlachara") or
+               string.find(item.name:lower(), "fledermausküken") or
+               string.find(item.name:lower(), "mechanisches huhn") or
+               string.find(item.name:lower(), "winziger wanderdrache") or
+               string.find(item.name:lower(), "drachenfalke") or
+               string.find(item.name:lower(), "sprite") or
+               string.find(item.name:lower(), "welpling") or
+               string.find(item.name:lower(), "raptorküken") or
+               -- Generic German pet terms
+               string.find(item.name:lower(), "träger") and (string.find(item.name:lower(), "katze") or string.find(item.name:lower(), "tier")) or
+               string.find(item.name:lower(), "käfig") and string.find(item.name:lower(), "tier") or
+               string.find(item.name:lower(), "ei") and string.find(item.name:lower(), "haustier")
+           ) then
+        tier = "A"
+    -- Also check by type/subtype (fallback for items not in name list)
+    elseif baseType == "Miscellaneous" and subType == "Companion Pets" or
+           baseType == "Diverses" and subType == "Haustiere" or
+           baseType == "Verschiedenes" and subType == "Haustiere" or
+           subType == "Companion Pets" or subType == "Haustiere" then
+        tier = "A"
+    -- Mounts (Any quality - will be upgraded by rarity system)
+    elseif subType == "Mount" or subType == "Reittier" then
+        tier = "A"  -- Base tier A, Epic mounts will auto-upgrade to S
     -- Armor
     elseif baseType == "Armor" or baseType == "Rüstung" or
            -- Check by equipment slot (more reliable)
@@ -657,6 +797,9 @@ function Gacha:DoPull()
 
     self.isSpinning = true
 
+    -- Stop all animations from previous pull (clears glow)
+    self:StopAllSingleAnimations()
+
     -- Clear any existing count displays from previous pulls
     if self.frame and self.frame.slots then
         for i = 1, 3 do
@@ -962,6 +1105,14 @@ function Gacha:OnPullComplete()
             CattosShuffleDB.gachaShards = self.shards
 
             print(string.format("|cffffcc00You earned a Pity Shard! (%d/%d)|r", self.shards, self.maxShards))
+
+            -- Create pulsing animation for S/SS tier slots that awarded the shard
+            for i = 1, 3 do
+                local slot = self.slots[i]
+                if (slot.tier == "S" or slot.tier == "SS") and self.frame and self.frame.slots[i] then
+                    self:CreateShardPulseAnimation(self.frame.slots[i], slot.tier)
+                end
+            end
 
             if self.shards >= self.maxShards then
                 print("|cff00ff00You have 3 shards! Click the shard icon to switch to Shuffle mode!|r")
@@ -1342,35 +1493,32 @@ function Gacha:FlashVictimSlot(slotNum)
     if not self.frame or not self.frame.slots[slotNum] then return end
 
     local slot = self.frame.slots[slotNum]
-    local flashCount = 0
-    local maxFlashes = 5
+    local tier = self.slots[slotNum] and self.slots[slotNum].tier
 
-    -- Play dramatic sound
-    PlaySound(888, "SFX")  -- PVP warning sound
+    -- If it's A, S or SS tier, just show the glow animation
+    if tier == "A" or tier == "S" or tier == "SS" then
+        -- First stop any existing animation and clear the glow
+        self:StopSingleSlotAnimation(slot)
 
-    C_Timer.NewTicker(0.1, function(timer)
-        flashCount = flashCount + 1
+        -- Show the epic glow animation for the tier
+        self:CreateSingleSlotEpicAnimation(slot, tier)
 
-        if flashCount % 2 == 0 then
-            -- Flash intense red for danger
-            slot:SetBackdropBorderColor(1, 0, 0, 1)  -- Bright red
-            slot:SetBackdropColor(0.5, 0, 0, 1)       -- Strong red tint
-            -- Don't change tier banner color
+        -- Play dramatic sound
+        if tier == "SS" then
+            PlaySound(31578, "SFX")  -- Epic loot sound
+        elseif tier == "S" then
+            PlaySound(888, "SFX")  -- PVP warning sound
         else
-            -- Flash bright white/gold
-            slot:SetBackdropBorderColor(1, 1, 0.8, 1)  -- Bright white-gold
-            slot:SetBackdropColor(0.3, 0.3, 0.2, 0.95)  -- Light gold tint
-            -- Don't change tier banner color
+            PlaySound(3332, "SFX")  -- Quest complete sound
         end
+    else
+        -- For non-epic tiers, just mark with a simple red border
+        slot:SetBackdropBorderColor(1, 0, 0, 1)  -- Red border for deletion
+        slot:SetBackdropColor(0.3, 0, 0, 1)      -- Slight red tint
 
-        if flashCount >= maxFlashes * 2 then
-            timer:Cancel()
-            -- Final danger state - intense red
-            slot:SetBackdropBorderColor(1, 0, 0, 1)  -- Stay bright red
-            slot:SetBackdropColor(0.4, 0, 0, 1)      -- Strong red tinted
-            -- Keep tier banner original color
-        end
-    end)
+        -- Play warning sound
+        PlaySound(888, "SFX")  -- PVP warning sound
+    end
 end
 
 -- Animate stack count selection
@@ -1525,29 +1673,256 @@ end
 function Gacha:FlashSlot(slotNum)
     if not self.UpdateUI then return end
 
-    -- Create a flash effect by briefly highlighting the slot
-    local flashCount = 0
-    local maxFlashes = 3
+    -- Get the tier for special effects
+    local tier = self.slots[slotNum] and self.slots[slotNum].tier
 
-    C_Timer.NewTicker(0.1, function(timer)
-        flashCount = flashCount + 1
+    -- Only SS tier gets automatic epic animation (legendary is special)
+    -- S tier only gets it when selected for deletion (like A tier)
+    if tier == "SS" and self.frame and self.frame.slots[slotNum] then
+        self:CreateSingleSlotEpicAnimation(self.frame.slots[slotNum], tier)
+    else
+        -- Normal flash for all other tiers including S
+        local flashCount = 0
+        local maxFlashes = 3
 
-        if self.frame and self.frame.slots and self.frame.slots[slotNum] then
-            local slot = self.frame.slots[slotNum]
+        C_Timer.NewTicker(0.1, function(timer)
+            flashCount = flashCount + 1
 
-            if flashCount % 2 == 0 then
-                -- Flash on
-                slot:SetBackdropBorderColor(1, 1, 0, 1)  -- Yellow flash
-            else
-                -- Flash off
-                slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)  -- Normal
+            if self.frame and self.frame.slots and self.frame.slots[slotNum] then
+                local slot = self.frame.slots[slotNum]
+
+                if flashCount % 2 == 0 then
+                    -- Flash on
+                    slot:SetBackdropBorderColor(1, 1, 0, 1)  -- Yellow flash
+                else
+                    -- Flash off
+                    slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)  -- Normal
+                end
             end
+
+            if flashCount >= maxFlashes * 2 then
+                timer:Cancel()
+            end
+        end)
+    end
+end
+
+-- Stop single slot animation and clean up
+function Gacha:StopSingleSlotAnimation(slot)
+    if not slot then return end
+
+    -- Cancel any running animation
+    if slot.animTicker then
+        slot.animTicker:Cancel()
+        slot.animTicker = nil
+    end
+
+    -- Cancel shard pulse ticker
+    if slot.shardPulseTicker then
+        slot.shardPulseTicker:Cancel()
+        slot.shardPulseTicker = nil
+    end
+
+    -- Reset slot colors
+    slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
+    slot:SetBackdropColor(0, 0, 0, 1)
+
+    -- Hide glow elements
+    if slot.glowBg then
+        slot.glowBg:SetAlpha(0)
+    end
+    if slot.borderGlow then
+        slot.borderGlow:SetAlpha(0)
+    end
+    -- Hide shard pulse
+    if slot.shardPulse then
+        slot.shardPulse:SetAlpha(0)
+    end
+
+    -- Reset backdrop
+    slot:SetBackdropColor(0.08, 0.08, 0.15, 0.95)
+    slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
+end
+
+-- Stop all single slot animations (when new pull starts)
+function Gacha:StopAllSingleAnimations()
+    if self.activeSingleAnimations then
+        for _, slot in ipairs(self.activeSingleAnimations) do
+            self:StopSingleSlotAnimation(slot)
+        end
+        self.activeSingleAnimations = {}
+    end
+end
+
+-- Create pulsing animation for S/SS tier that awards shard
+function Gacha:CreateShardPulseAnimation(slot, tier)
+    -- Create glow frame if not exists
+    if not slot.shardGlow then
+        slot.shardGlow = CreateFrame("Frame", nil, slot)
+        slot.shardGlow:SetAllPoints(slot)
+        slot.shardGlow:SetFrameLevel(slot:GetFrameLevel() + 1)
+
+        -- Create a soft pulsing glow
+        slot.shardPulse = slot.shardGlow:CreateTexture(nil, "BACKGROUND")
+        slot.shardPulse:SetPoint("CENTER", slot, "CENTER", 0, 0)
+        slot.shardPulse:SetSize(130 * 1.2, 160 * 1.2)
+        slot.shardPulse:SetTexture("Interface\\Cooldown\\star4")
+        slot.shardPulse:SetBlendMode("ADD")
+    end
+
+    -- Set color based on tier
+    local r, g, b = 1, 0.84, 0  -- Gold for S
+    if tier == "SS" then
+        r, g, b = 1, 0.5, 0.2  -- Legendary orange for SS
+    end
+
+    slot.shardPulse:SetVertexColor(r, g, b, 0.3)
+
+    -- Create gentle pulsing effect
+    local pulseAlpha = 0.3
+    local pulseDirection = 1
+    local pulseSpeed = 0.02  -- Slightly faster for more noticeable pulse
+
+    -- Store the ticker so we can stop it later
+    if slot.shardPulseTicker then
+        slot.shardPulseTicker:Cancel()
+    end
+
+    slot.shardPulseTicker = C_Timer.NewTicker(0.03, function()
+        pulseAlpha = pulseAlpha + (pulseDirection * pulseSpeed)
+
+        if pulseAlpha >= 0.7 then  -- Brighter max
+            pulseAlpha = 0.7
+            pulseDirection = -1
+        elseif pulseAlpha <= 0.15 then  -- Dimmer min for more contrast
+            pulseAlpha = 0.15
+            pulseDirection = 1
         end
 
-        if flashCount >= maxFlashes * 2 then
-            timer:Cancel()
+        if slot.shardPulse then
+            slot.shardPulse:SetAlpha(pulseAlpha)
         end
     end)
+
+    -- Add to active animations list for cleanup
+    if not self.activeSingleAnimations then
+        self.activeSingleAnimations = {}
+    end
+    table.insert(self.activeSingleAnimations, slot)
+
+    -- Stop after 7 seconds (longer duration for better visibility)
+    C_Timer.After(7, function()
+        if slot.shardPulseTicker then
+            slot.shardPulseTicker:Cancel()
+            slot.shardPulseTicker = nil
+        end
+        if slot.shardPulse then
+            slot.shardPulse:SetAlpha(0)
+        end
+    end)
+end
+
+-- Create epic animation for single slot (3-pull)
+function Gacha:CreateSingleSlotEpicAnimation(slot, tier)
+    -- Create glow frame if not exists
+    if not slot.glowFrame then
+        slot.glowFrame = CreateFrame("Frame", nil, slot)
+        slot.glowFrame:SetAllPoints(slot)
+        slot.glowFrame:SetFrameLevel(slot:GetFrameLevel() + 1)
+
+        -- Background glow texture
+        slot.glowBg = slot.glowFrame:CreateTexture(nil, "BACKGROUND")
+        slot.glowBg:SetPoint("CENTER", slot, "CENTER", 0, 0)
+        slot.glowBg:SetSize(130 * 1.5, 160 * 1.5)  -- Adjusted for single slot size
+        slot.glowBg:SetTexture("Interface\\Cooldown\\star4")
+        slot.glowBg:SetBlendMode("ADD")
+
+        -- Moving border glow
+        slot.borderGlow = slot.glowFrame:CreateTexture(nil, "OVERLAY")
+        slot.borderGlow:SetAllPoints(slot)
+        slot.borderGlow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+        slot.borderGlow:SetBlendMode("ADD")
+    end
+
+    -- Set colors based on tier
+    local r, g, b = 1, 0.84, 0  -- Gold for S
+    if tier == "SS" then
+        r, g, b = 1, 0.5, 0.2  -- Legendary orange-red for SS
+    elseif tier == "A" then
+        r, g, b = 0.6, 0.2, 0.8  -- Purple for A
+    end
+
+    -- Initial flash
+    slot.glowBg:SetVertexColor(r, g, b, 1)
+    slot.borderGlow:SetVertexColor(r, g, b, 1)
+
+    -- Play sound based on tier
+    if tier == "SS" then
+        PlaySound(31578, "SFX")  -- Epic loot sound
+    elseif tier == "S" then
+        PlaySound(31579, "SFX")  -- Rare loot sound
+    elseif tier == "A" then
+        PlaySound(124, "SFX")  -- Good item sound
+    end
+
+    -- Store in active animations for cleanup
+    if not self.activeSingleAnimations then
+        self.activeSingleAnimations = {}
+    end
+
+    -- Animation variables
+    local elapsed = 0
+    local pulseSpeed = 0.5
+    local rotateSpeed = 2
+    local fadeInTime = 0.3
+
+    -- Start the animation (INFINITE until window closes)
+    if slot.animTicker then
+        slot.animTicker:Cancel()
+    end
+
+    slot.animTicker = C_Timer.NewTicker(0.02, function(ticker)
+        elapsed = elapsed + 0.02
+
+        -- Fade in
+        local fadeAlpha = 1
+        if elapsed < fadeInTime then
+            fadeAlpha = elapsed / fadeInTime
+        end
+
+        -- Pulsing effect (continuous)
+        local pulse = (math.sin(elapsed / pulseSpeed * math.pi) + 1) / 2
+        local bgAlpha = fadeAlpha * (0.3 + pulse * 0.7)
+        slot.glowBg:SetAlpha(bgAlpha)
+
+        -- Rotate the background glow (continuous)
+        local rotation = elapsed * rotateSpeed
+        slot.glowBg:SetRotation(rotation)
+
+        -- Border shimmer effect (continuous)
+        local shimmer = (math.sin(elapsed * 4) + 1) / 2
+        slot.borderGlow:SetAlpha(fadeAlpha * (0.5 + shimmer * 0.5))
+
+        -- Moving light effect on border (continuous)
+        local progress = (elapsed % 1.5) / 1.5
+        local borderHighlight = math.sin(progress * math.pi * 2)
+
+        if borderHighlight > 0 then
+            slot:SetBackdropBorderColor(
+                r + (1 - r) * borderHighlight * 0.5,
+                g + (1 - g) * borderHighlight * 0.5,
+                b + (1 - b) * borderHighlight * 0.5,
+                1
+            )
+        else
+            -- Keep the base glow color
+            slot:SetBackdropBorderColor(r, g, b, 1)
+        end
+    end)
+
+    -- Add to active animations list
+    table.insert(self.activeSingleAnimations, slot)
+    slot.lastTier = tier
 end
 
 -- Redeem shards to switch to shuffle mode
@@ -1603,12 +1978,7 @@ function Gacha:Initialize()
         self.bTierPityCount = 0
     end
 
-    -- Setup x10 animation after a small delay to ensure UI is loaded
-    C_Timer.After(0.5, function()
-        if self.SetupX10Animation then
-            self:SetupX10Animation()
-        end
-    end)
+    -- Don't setup x10 animation here - it will be setup when the Gacha window is opened
 
     -- Register combat events
     local combatFrame = CreateFrame("Frame")
@@ -1626,6 +1996,21 @@ function Gacha:Initialize()
                 Gacha.wasVisibleBeforeCombat = false
             end
 
+            -- Also close x10 animation frame if open
+            if Gacha.x10CompactFrame and Gacha.x10CompactFrame:IsShown() then
+                Gacha.wasX10VisibleBeforeCombat = true
+                Gacha.x10CompactFrame:Hide()
+                -- Pause animation but don't clear it
+                if Gacha.x10CompactTicker then
+                    Gacha.x10CompactTicker:Cancel()
+                    -- Don't nil it, we'll resume later
+                    Gacha.x10AnimationPaused = true
+                end
+                print("|cffff0000x10 Animation paused - entering combat!|r")
+            else
+                Gacha.wasX10VisibleBeforeCombat = false
+            end
+
             -- Also close item list if open
             if Gacha.itemListFrame and Gacha.itemListFrame:IsShown() then
                 Gacha.itemListFrame:Hide()
@@ -1635,13 +2020,28 @@ function Gacha:Initialize()
 
             -- First check if window should reopen (was visible before combat)
             local shouldReopen = Gacha.wasVisibleBeforeCombat
+            local shouldReopenX10 = Gacha.wasX10VisibleBeforeCombat
             Gacha.wasVisibleBeforeCombat = false
+            Gacha.wasX10VisibleBeforeCombat = false
 
             if shouldReopen and Gacha.frame then
                 Gacha.frame:Show()
                 Gacha:BuildItemPool()  -- Rebuild pool after combat
                 Gacha:UpdateGachaUI()
                 print("|cff00ff00Combat ended - Gacha reopened!|r")
+            end
+
+            -- Reopen x10 animation if it was open
+            if shouldReopenX10 and Gacha.x10CompactFrame then
+                Gacha.x10CompactFrame:Show()
+
+                -- Resume animation if it was paused
+                if Gacha.x10AnimationPaused and Gacha.x10AnimationData then
+                    print("|cff00ff00Combat ended - Resuming x10 Animation!|r")
+                    Gacha:ResumeX10Animation()
+                else
+                    print("|cff00ff00Combat ended - x10 Animation reopened!|r")
+                end
             end
 
             -- Then check if there's a pending open request from during combat

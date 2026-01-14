@@ -91,6 +91,12 @@ function CattosShuffle:InitializeUI()
     -- Initialize visibility
     self.frame:Hide()
 
+    -- Version number at bottom right
+    local versionBottom = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    versionBottom:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -15, 15)
+    versionBottom:SetText("|cff666666v2.3.2|r")
+    versionBottom:SetAlpha(0.6)
+
     -- Add to ESC close list so ESC key closes the window
     tinsert(UISpecialFrames, "CattosShuffleFrame")
 

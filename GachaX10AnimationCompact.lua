@@ -10,7 +10,7 @@ local Gacha = CattosShuffle.Gacha
 -- Constants for animation
 local SLOT_WIDTH = 120
 local SLOT_HEIGHT = 160
-local SLOT_SPACING = 20
+local SLOT_SPACING = 35  -- Increased spacing between individual pulls
 local PULLS_PER_ROW = 5
 
 -- Tier info reference
@@ -29,7 +29,7 @@ function Gacha:CreateCompactX10Frame()
     end
 
     local frame = CreateFrame("Frame", "CattosGachaX10Compact", UIParent, "BasicFrameTemplate")
-    frame:SetSize(700, 550)  -- Even taller frame to prevent overlap
+    frame:SetSize(760, 550)  -- Wider frame to accommodate increased spacing
     frame:SetPoint("CENTER", 0, 0)
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -38,6 +38,16 @@ function Gacha:CreateCompactX10Frame()
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     frame:SetFrameStrata("FULLSCREEN_DIALOG")
     frame:Hide()
+
+    -- OnHide cleanup to ensure animations stop
+    frame:SetScript("OnHide", function(self)
+        -- Stop all animations when frame is hidden
+        Gacha:StopAllEpicAnimations()
+        -- Also clear the active animations list
+        if Gacha.activeAnimations then
+            Gacha.activeAnimations = {}
+        end
+    end)
 
     -- Add to ESC close list
     tinsert(UISpecialFrames, "CattosGachaX10Compact")
@@ -177,11 +187,19 @@ function Gacha:CreateCompactX10Frame()
     frame.closeButton:SetScript("OnClick", function()
         if not Gacha.x10AnimationRunning then
             PlaySound(855, "SFX")
+
+            -- Stop all active animations
+            Gacha:StopAllEpicAnimations()
+
             frame:Hide()
             -- Show main gacha frame again
             if Gacha.frame then
                 Gacha.frame:Show()
             end
+        else
+            -- Animation still running - just hide the window but keep animation state
+            print("|cffffcc00Animation still running - window hidden. Click x10 Pull to reopen!|r")
+            frame:Hide()
         end
     end)
 
@@ -282,6 +300,13 @@ end
 
 -- New compact animated x10 pull function
 function Gacha:Pull10CompactAnimated()
+    -- Check if animation is already running and frame is hidden - reopen it
+    if self.x10AnimationRunning and self.x10CompactFrame and not self.x10CompactFrame:IsShown() then
+        self.x10CompactFrame:Show()
+        print("|cff00ff00Reopening x10 animation window!|r")
+        return
+    end
+
     if self.isSpinning or self.x10AnimationRunning then
         print("|cffff0000Animation already in progress!|r")
         return
@@ -320,6 +345,9 @@ function Gacha:Pull10CompactAnimated()
     if self.frame then
         self.frame:Hide()
     end
+
+    -- Stop any existing animations before starting new ones
+    self:StopAllEpicAnimations()
 
     -- Reset all slots to spinning state
     for pullNum = 1, 10 do
@@ -413,12 +441,18 @@ function Gacha:RunCompactParallelSpins(displayResults)
     for pullNum = 1, 10 do
         animationData[pullNum] = {
             isSpinning = true,
-            -- Staggered stop times - each pull stops 0.7 seconds after the previous
-            -- First stops at 3 seconds, last at ~9.3 seconds
-            stopTime = 3.0 + (pullNum - 1) * 0.7,
+            -- Staggered stop times - each pull stops 1 second after the previous
+            -- First stops at 3 seconds, last at ~12 seconds
+            stopTime = 3.0 + (pullNum - 1) * 1.0,
             displayResult = displayResults[pullNum]
         }
     end
+
+    -- Store animation state for resume after combat
+    self.x10AnimationData = animationData
+    self.x10DisplayResults = displayResults
+    self.x10AnimationElapsed = 0
+    self.x10AnimationPaused = false
 
     local elapsed = 0
     local animSpeed = 0.05
@@ -427,6 +461,7 @@ function Gacha:RunCompactParallelSpins(displayResults)
     -- Main animation ticker
     self.x10CompactTicker = C_Timer.NewTicker(animSpeed, function()
         elapsed = elapsed + animSpeed
+        self.x10AnimationElapsed = elapsed  -- Store for resume
         local stillSpinning = false
 
         for pullNum = 1, 10 do
@@ -531,6 +566,11 @@ function Gacha:ShowCompactSlotResult(slot, result, pullNum)
         slot.itemText:SetText(itemName)
     end
 
+    -- Special animation for S and SS tier always, A tier only on match
+    if result.tier == "S" or result.tier == "SS" or (result.tier == "A" and result.hasMatch) then
+        self:CreateEpicPullAnimation(slot, result.tier)
+    end
+
     -- Show match indicator
     if result.hasMatch then
         slot.matchIndicator:SetText(result.matchText)
@@ -563,6 +603,164 @@ function Gacha:ShowCompactSlotResult(slot, result, pullNum)
     -- Optional: Show hidden tiers for debugging (uncomment to see all 3 rolls)
     -- slot.hiddenTiers:SetText(result.allTiers)
     -- slot.hiddenTiers:Show()
+end
+
+-- Stop all epic animations (cleanup when closing frame)
+function Gacha:StopAllEpicAnimations()
+    -- Clean up x10 frame slots if they exist
+    if self.x10CompactFrame and self.x10CompactFrame.slots then
+        for i = 1, 10 do
+            local slot = self.x10CompactFrame.slots[i]
+            if slot then
+                -- Cancel any active tickers
+                if slot.animTicker then
+                    slot.animTicker:Cancel()
+                    slot.animTicker = nil
+                end
+                if slot.fadeOutTicker then
+                    slot.fadeOutTicker:Cancel()
+                    slot.fadeOutTicker = nil
+                end
+                -- Hide all glow elements
+                if slot.glowBg then
+                    slot.glowBg:SetAlpha(0)
+                end
+                if slot.borderGlow then
+                    slot.borderGlow:SetAlpha(0)
+                end
+                -- Reset to default state
+                slot:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+                slot:SetBackdropColor(0.08, 0.08, 0.15, 0.95)
+            end
+        end
+    end
+
+    -- Also clean the tracked animations list
+    if self.activeAnimations then
+        for _, slot in ipairs(self.activeAnimations) do
+            if slot.animTicker then
+                slot.animTicker:Cancel()
+                slot.animTicker = nil
+            end
+            if slot.fadeOutTicker then
+                slot.fadeOutTicker:Cancel()
+                slot.fadeOutTicker = nil
+            end
+            -- Hide glow elements
+            if slot.glowBg then
+                slot.glowBg:SetAlpha(0)
+            end
+            if slot.borderGlow then
+                slot.borderGlow:SetAlpha(0)
+            end
+        end
+        self.activeAnimations = {}
+    end
+end
+
+-- Create epic animation for S/SS tier pulls
+function Gacha:CreateEpicPullAnimation(slot, tier)
+    -- Create glow frame if not exists
+    if not slot.glowFrame then
+        slot.glowFrame = CreateFrame("Frame", nil, slot)
+        slot.glowFrame:SetAllPoints(slot)
+        slot.glowFrame:SetFrameLevel(slot:GetFrameLevel() + 1)
+
+        -- Background glow texture
+        slot.glowBg = slot.glowFrame:CreateTexture(nil, "BACKGROUND")
+        slot.glowBg:SetPoint("CENTER", slot, "CENTER", 0, 0)
+        slot.glowBg:SetSize(SLOT_WIDTH * 1.5, SLOT_HEIGHT * 1.5)
+        slot.glowBg:SetTexture("Interface\\Cooldown\\star4")
+        slot.glowBg:SetBlendMode("ADD")
+
+        -- Moving border glow
+        slot.borderGlow = slot.glowFrame:CreateTexture(nil, "OVERLAY")
+        slot.borderGlow:SetAllPoints(slot)
+        slot.borderGlow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+        slot.borderGlow:SetBlendMode("ADD")
+    end
+
+    -- Set colors based on tier
+    local r, g, b = 1, 0.84, 0  -- Gold for S
+    if tier == "SS" then
+        r, g, b = 1, 0.5, 0.2  -- Legendary orange-red for SS (WoW Legendary color)
+    elseif tier == "A" then
+        r, g, b = 0.6, 0.2, 0.8  -- Purple for A
+    end
+
+    -- Initial flash
+    slot.glowBg:SetVertexColor(r, g, b, 1)
+    slot.borderGlow:SetVertexColor(r, g, b, 1)
+
+    -- Play sound based on tier
+    if tier == "SS" then
+        PlaySound(31578, "SFX")  -- Epic loot sound
+    elseif tier == "S" then
+        PlaySound(31579, "SFX")  -- Rare loot sound
+    elseif tier == "A" then
+        PlaySound(124, "SFX")  -- Good item sound
+    end
+
+    -- Animation variables
+    local elapsed = 0
+    local pulseSpeed = 0.5
+    local rotateSpeed = 2
+    local fadeInTime = 0.3
+
+    -- Start the animation (INFINITE - no duration limit)
+    if slot.animTicker then
+        slot.animTicker:Cancel()
+    end
+
+    -- Store ticker reference for cleanup
+    if not self.activeAnimations then
+        self.activeAnimations = {}
+    end
+
+    slot.animTicker = C_Timer.NewTicker(0.02, function(ticker)
+        elapsed = elapsed + 0.02
+
+        -- Fade in
+        local fadeAlpha = 1
+        if elapsed < fadeInTime then
+            fadeAlpha = elapsed / fadeInTime
+        end
+
+        -- Pulsing effect (continuous)
+        local pulse = (math.sin(elapsed / pulseSpeed * math.pi) + 1) / 2
+        local bgAlpha = fadeAlpha * (0.3 + pulse * 0.7)
+        slot.glowBg:SetAlpha(bgAlpha)
+
+        -- Rotate the background glow (continuous)
+        local rotation = elapsed * rotateSpeed
+        slot.glowBg:SetRotation(rotation)
+
+        -- Border shimmer effect (continuous)
+        local shimmer = (math.sin(elapsed * 4) + 1) / 2
+        slot.borderGlow:SetAlpha(fadeAlpha * (0.5 + shimmer * 0.5))
+
+        -- Moving light effect on border (continuous)
+        local progress = (elapsed % 1.5) / 1.5
+        local borderHighlight = math.sin(progress * math.pi * 2)
+
+        if borderHighlight > 0 then
+            slot:SetBackdropBorderColor(
+                r + (1 - r) * borderHighlight * 0.5,
+                g + (1 - g) * borderHighlight * 0.5,
+                b + (1 - b) * borderHighlight * 0.5,
+                1
+            )
+        else
+            -- Keep the base glow color
+            slot:SetBackdropBorderColor(r, g, b, 1)
+        end
+
+        -- NO STOP CONDITION - runs forever until frame closes
+    end)
+
+    -- Add to active animations list
+    table.insert(self.activeAnimations, slot)
+    slot.lastTier = tier  -- Store tier for cleanup
 end
 
 -- Handle completion of compact animation
@@ -707,32 +905,124 @@ function Gacha:ShowCompactDeleteInstructions(deleteList)
     print("|cffff0000Delete these items manually from your bags!|r")
 end
 
--- Override the setup to use compact version
-function Gacha:SetupX10Animation()
-    -- Try multiple times to ensure UI is ready
-    local attempts = 0
-    local maxAttempts = 10
-
-    local function TrySetup()
-        attempts = attempts + 1
-
-        if self.frame and self.frame.pull10Button then
-            -- Successfully found the button - set up the COMPACT animation
-            self.frame.pull10Button:SetScript("OnClick", function()
-                PlaySound(856, "SFX")
-                Gacha:Pull10CompactAnimated()  -- Use COMPACT animated version
-            end)
-            print("|cff00ff00x10 Compact Animation ready!|r")
-            return true
-        elseif attempts < maxAttempts then
-            -- Try again in 0.5 seconds
-            C_Timer.After(0.5, TrySetup)
-            return false
-        else
-            print("|cffff0000Failed to setup x10 animation|r")
-            return false
-        end
+-- Resume x10 animation after combat
+function Gacha:ResumeX10Animation()
+    if not self.x10AnimationData or not self.x10DisplayResults then
+        print("|cffff0000Cannot resume - animation data lost|r")
+        return
     end
 
-    TrySetup()
+    local animationData = self.x10AnimationData
+    local displayResults = self.x10DisplayResults
+    local elapsed = self.x10AnimationElapsed or 0
+    local frame = self.x10CompactFrame
+    local animSpeed = 0.05
+    local allStopped = false
+
+    -- Reset pause flag
+    self.x10AnimationPaused = false
+    self.x10AnimationRunning = true
+
+    -- Disable close button during animation
+    frame.closeButton:SetEnabled(false)
+
+    print(string.format("|cffffcc00Resuming animation from %.1f seconds...|r", elapsed))
+
+    -- Resume the animation ticker
+    self.x10CompactTicker = C_Timer.NewTicker(animSpeed, function()
+        elapsed = elapsed + animSpeed
+        self.x10AnimationElapsed = elapsed
+        local stillSpinning = false
+
+        for pullNum = 1, 10 do
+            local slotData = animationData[pullNum]
+            local slot = frame.slots[pullNum]
+
+            if slotData.isSpinning then
+                stillSpinning = true
+
+                -- Check if time to stop
+                if elapsed >= slotData.stopTime then
+                    slotData.isSpinning = false
+
+                    -- Show final result
+                    self:ShowCompactSlotResult(slot, slotData.displayResult, pullNum)
+
+                    -- Play stop sound
+                    PlaySound(3175, "SFX")
+
+                    -- Extra effects for matches
+                    if slotData.displayResult.hasMatch then
+                        PlaySound(888, "SFX")  -- Warning sound for match
+                    end
+                else
+                    -- Keep spinning - show random tiers/items
+                    local progress = elapsed / slotData.stopTime
+
+                    -- Slow down as we approach stop time (more gradual slowdown)
+                    local changeChance = 0.4
+                    if progress > 0.5 then
+                        changeChance = 0.3
+                    end
+                    if progress > 0.65 then
+                        changeChance = 0.2
+                    end
+                    if progress > 0.75 then
+                        changeChance = 0.15
+                    end
+                    if progress > 0.85 then
+                        changeChance = 0.08
+                    end
+                    if progress > 0.92 then
+                        changeChance = 0.04
+                    end
+                    if progress > 0.96 then
+                        changeChance = 0.02
+                    end
+
+                    if math.random() < changeChance then
+                        -- Random visual changes during spin
+                        local randomTier = self:GetRandomTier()
+                        local color = TIER_INFO[randomTier].color
+
+                        slot.tierBanner:SetBackdropColor(color.r, color.g, color.b, 0.3)
+                        slot.tierText:SetText(randomTier)
+                        slot.tierText:SetTextColor(1, 1, 1, 0.5)
+
+                        -- Random icon (change more frequently)
+                        if math.random() < 0.6 then
+                            local randomItem = self:GetRandomItemFromTier(randomTier)
+                            if randomItem and randomItem.icon then
+                                slot.icon:SetTexture(randomItem.icon)
+                                slot.icon:SetAlpha(0.4)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        -- All animations complete
+        if not stillSpinning and not allStopped then
+            allStopped = true
+            self:OnCompactX10AnimationComplete(displayResults)
+        end
+    end)
+end
+
+-- Override the setup to use compact version
+function Gacha:SetupX10Animation()
+    -- Don't try if frame doesn't exist yet
+    if not self.frame or not self.frame.pull10Button then
+        return false
+    end
+
+    -- Successfully found the button - set up the COMPACT animation
+    self.frame.pull10Button:SetScript("OnClick", function()
+        PlaySound(856, "SFX")
+        Gacha:Pull10CompactAnimated()  -- Use COMPACT animated version
+    end)
+
+    -- Silent success (no spam in chat)
+    return true
 end
