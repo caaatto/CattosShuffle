@@ -817,10 +817,6 @@ function Gacha:Pull10Fast()
 
     -- Check for bonus rolls after x10 pull
     -- Each pull increments bonus chance by 5%, so x10 = 50% added
-    print(string.format("|cff888888DEBUG: Bonus chance after x10: %d%% | Projectiles: %d|r",
-        self.bonusRollChance or 0,
-        self.projectilePool and #self.projectilePool or 0))
-
     self:CheckBonusRoll()
 
     -- Clean up temporary isDeleted flags from all items in the pool
@@ -1470,21 +1466,15 @@ end
 
 -- Check and handle bonus roll for projectiles
 function Gacha:CheckBonusRoll()
-    print("|cff888888DEBUG: CheckBonusRoll called|r")
-
     -- Check if we have any projectiles
     if not self.projectilePool or #self.projectilePool == 0 then
         -- No projectiles = no bonus roll triggered
-        print("|cff888888DEBUG: No projectiles in pool, skipping bonus roll|r")
         return
     end
 
     -- Roll for bonus (accumulated chance)
     local roll = math.random(1, 100)
     local currentChance = self.bonusRollChance or 0
-
-    print(string.format("|cff888888Bonus Roll: %d vs %d%% chance (Pool: %d projectiles)|r",
-        roll, currentChance, #self.projectilePool))
 
     if roll <= currentChance then
         -- BONUS ROLL HIT!
@@ -1505,11 +1495,8 @@ function Gacha:CheckBonusRoll()
             -- Show the bonus roll window with animation
             self:ShowBonusRollWindow(bonusItem)
         end
-    else
-        -- No bonus this time, chance continues to accumulate
-        print(string.format("|cff888888Bonus roll failed. Chance increases to %d%% for next roll|r",
-            currentChance + self.bonusRollBaseIncrement))
     end
+    -- No else needed - bonus roll fails silently
 end
 
 -- Auto-delete item with Delete confirmation

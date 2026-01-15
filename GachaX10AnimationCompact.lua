@@ -814,10 +814,6 @@ function Gacha:OnCompactX10AnimationComplete(displayResults)
 
     -- Check for bonus roll after x10 animation completes
     -- Each pull already incremented bonus chance by 5%, so x10 = 50% added
-    print(string.format("|cff888888DEBUG: Bonus chance after x10 animation: %d%% | Projectiles: %d|r",
-        self.bonusRollChance or 0,
-        self.projectilePool and #self.projectilePool or 0))
-
     self:CheckBonusRoll()
 
     -- Clean up temporary isDeleted flags from all items in the pool
