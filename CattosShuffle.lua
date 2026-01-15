@@ -588,6 +588,127 @@ SLASH_CATTOS1 = "/cattos"
 SLASH_CATTOS2 = "/casino"
 SLASH_CATTOS3 = "/cc"
 
+-- Debug command for bonus roll
+SLASH_CATTOSBONUS1 = "/ccbonus"
+SLASH_CATTOSBONUS2 = "/gachabonus"
+
+SlashCmdList["CATTOSBONUS"] = function(msg)
+    if not CattosShuffle.Gacha then
+        print("|cffff0000Gacha module not loaded!|r")
+        return
+    end
+
+    local cmd = msg:lower():trim()
+
+    if cmd == "" or cmd == "status" then
+        -- Show current bonus roll status
+        local bonusChance = CattosShuffle.Gacha.bonusRollChance or 0
+        local projectileCount = CattosShuffle.Gacha.projectilePool and #CattosShuffle.Gacha.projectilePool or 0
+
+        print("|cffffcc00=== Bonus Roll Status ===|r")
+        print(string.format("|cffccccccCurrent Chance: %d%%|r", bonusChance))
+        print(string.format("|cffccccccPulls until guaranteed: %d|r", math.ceil((100 - bonusChance) / 5)))
+        print(string.format("|cffccccccProjectiles in inventory: %d|r", projectileCount))
+
+        if projectileCount > 0 then
+            print("|cff00ff00Projectiles found - bonus roll CAN trigger|r")
+            for i = 1, math.min(3, projectileCount) do
+                local item = CattosShuffle.Gacha.projectilePool[i]
+                if item then
+                    print(string.format("  - %s (x%d)", item.name, item.stackCount or 1))
+                end
+            end
+            if projectileCount > 3 then
+                print(string.format("  ... and %d more", projectileCount - 3))
+            end
+        else
+            print("|cffff0000No projectiles found - bonus roll CANNOT trigger|r")
+        end
+    elseif cmd == "scan" then
+        -- Debug scan for projectiles
+        print("|cffffcc00Scanning inventory for projectiles...|r")
+        CattosShuffle.Gacha:BuildItemPool()
+
+        local foundAny = false
+        for bag = 0, 4 do
+            local numSlots = C_Container and C_Container.GetContainerNumSlots(bag) or GetContainerNumSlots(bag)
+            for slot = 1, numSlots do
+                local itemInfo = C_Container and C_Container.GetContainerItemInfo(bag, slot)
+                if itemInfo and itemInfo.itemID then
+                    local name, _, _, _, _, itemType, itemSubType = GetItemInfo(itemInfo.itemID)
+                    if name then
+                        -- Check if it's a projectile
+                        if itemType == "Projectile" or itemType == "Projektil" or
+                           itemSubType == "Arrow" or itemSubType == "Pfeil" or
+                           itemSubType == "Bullet" or itemSubType == "Geschoss" or
+                           itemSubType == "Thrown" or itemSubType == "Wurfwaffe" then
+                            print(string.format("|cff00ff00Found: %s|r", name))
+                            print(string.format("  Type: %s | SubType: %s", itemType or "nil", itemSubType or "nil"))
+                            foundAny = true
+                        end
+                    end
+                end
+            end
+        end
+
+        if not foundAny then
+            print("|cffff0000No projectiles found. Checking all items...|r")
+            -- Show first 5 items to debug
+            local count = 0
+            for bag = 0, 4 do
+                local numSlots = C_Container and C_Container.GetContainerNumSlots(bag) or GetContainerNumSlots(bag)
+                for slot = 1, numSlots do
+                    local itemInfo = C_Container and C_Container.GetContainerItemInfo(bag, slot)
+                    if itemInfo and itemInfo.itemID and count < 5 then
+                        local name, _, _, _, _, itemType, itemSubType = GetItemInfo(itemInfo.itemID)
+                        if name then
+                            print(string.format("Item: %s | Type: %s | SubType: %s",
+                                name, itemType or "nil", itemSubType or "nil"))
+                            count = count + 1
+                        end
+                    end
+                end
+            end
+        end
+
+        print(string.format("|cffffcc00Projectile pool size: %d|r",
+            CattosShuffle.Gacha.projectilePool and #CattosShuffle.Gacha.projectilePool or 0))
+    elseif cmd == "reset" then
+        -- Reset bonus roll window to force recreation
+        if CattosShuffle.Gacha.bonusRollFrame then
+            CattosShuffle.Gacha.bonusRollFrame:Hide()
+            CattosShuffle.Gacha.bonusRollFrame = nil
+            print("|cff00ff00Bonus roll window reset! It will be recreated next time.|r")
+        else
+            print("|cffffcc00No bonus roll window to reset.|r")
+        end
+    elseif cmd == "force" or cmd == "test" then
+        -- Force trigger bonus roll for testing
+        print("|cffffcc00Forcing bonus roll trigger...|r")
+        CattosShuffle.Gacha.bonusRollChance = 100  -- Set to 100% temporarily
+        CattosShuffleDB.gachaBonusRollChance = 100
+        CattosShuffle.Gacha:BuildItemPool()  -- Rebuild to find projectiles
+        CattosShuffle.Gacha:CheckBonusRoll()
+    elseif cmd:match("^set%s+(%d+)") then
+        -- Set bonus chance manually
+        local value = tonumber(cmd:match("^set%s+(%d+)"))
+        if value and value >= 0 and value <= 100 then
+            CattosShuffle.Gacha.bonusRollChance = value
+            CattosShuffleDB.gachaBonusRollChance = value
+            print(string.format("|cff00ff00Bonus roll chance set to %d%%|r", value))
+        else
+            print("|cffff0000Invalid value! Use 0-100|r")
+        end
+    else
+        print("|cffffcc00Bonus Roll Commands:|r")
+        print("  |cffcccccc/ccbonus|r - Show current status")
+        print("  |cffcccccc/ccbonus scan|r - Debug scan for projectiles")
+        print("  |cffcccccc/ccbonus reset|r - Reset bonus roll window")
+        print("  |cffcccccc/ccbonus force|r - Force trigger bonus roll")
+        print("  |cffcccccc/ccbonus set <0-100>|r - Set bonus chance")
+    end
+end
+
 -- Gacha specific command
 SLASH_CATTOSGACHA1 = "/ccg"
 

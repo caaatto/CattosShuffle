@@ -85,6 +85,11 @@ Gacha.pityThreshold = 50
 Gacha.bTierPityCount = 0
 Gacha.bTierPityThreshold = 10
 
+-- Bonus Roll System (for Projectiles/Throwables)
+Gacha.bonusRollChance = 0  -- Starts at 0%, accumulates 5% per roll
+Gacha.bonusRollBaseIncrement = 5  -- 5% per roll
+Gacha.projectilePool = {}  -- Separate pool for projectiles/throwables
+
 -- Check if item is quest item
 local function IsQuestItem(itemId)
     if not itemId then return false end
@@ -317,11 +322,12 @@ function Gacha:GetItemTier(item)
            subType == "Leatherworking Bag" or subType == "Lederertasche" or
            subType == "Ammo Pouch" or subType == "Munitionsbeutel" then
         tier = "A"
-    -- Projectiles (Arrows, Bullets)
+    -- Projectiles (Arrows, Bullets) - EXCLUDED from main pool (bonus loot only)
     elseif baseType == "Projectile" or baseType == "Projektil" or
            subType == "Arrow" or subType == "Pfeil" or
-           subType == "Bullet" or subType == "Geschoss" then
-        tier = "A"
+           subType == "Bullet" or subType == "Geschoss" or
+           subType == "Thrown" or subType == "Wurfwaffe" then
+        tier = "PROJECTILE"  -- Special tier to exclude from main gacha
 
     -- C TIER: Everything else (Junk, Trade Goods, Reagents, Misc)
     -- Trade Goods
@@ -389,6 +395,7 @@ function Gacha:BuildItemPool()
         ["S"] = {},
         ["SS"] = {}
     }
+    self.projectilePool = {}  -- Separate pool for projectiles
     self.totalItems = 0
 
     -- Scan equipped items (S/SS Tier potential)
@@ -416,9 +423,16 @@ function Gacha:BuildItemPool()
                 local tier = self:GetItemTier(item)
                 item.tier = tier
 
-                table.insert(self.itemPool, item)
-                table.insert(self.tierPools[tier], item)
-                self.totalItems = self.totalItems + 1
+                -- Separate projectiles into their own pool
+                if tier == "PROJECTILE" then
+                    table.insert(self.projectilePool, item)
+                else
+                    table.insert(self.itemPool, item)
+                    if self.tierPools[tier] then
+                        table.insert(self.tierPools[tier], item)
+                    end
+                    self.totalItems = self.totalItems + 1
+                end
             end
         end
     end
@@ -476,9 +490,16 @@ function Gacha:BuildItemPool()
                     local tier = self:GetItemTier(item)
                     item.tier = tier
 
-                    table.insert(self.itemPool, item)
-                    table.insert(self.tierPools[tier], item)
-                    self.totalItems = self.totalItems + 1
+                    -- Separate projectiles into their own pool
+                    if tier == "PROJECTILE" then
+                        table.insert(self.projectilePool, item)
+                    else
+                        table.insert(self.itemPool, item)
+                        if self.tierPools[tier] then
+                            table.insert(self.tierPools[tier], item)
+                        end
+                        self.totalItems = self.totalItems + 1
+                    end
                 end
             end
         end
@@ -558,7 +579,7 @@ function Gacha:GetRandomItemFromTier(tier, excludeList)
                     break
                 end
             end
-            if not isExcluded then
+            if not isExcluded and not item.isDeleted then
                 table.insert(availablePool, item)
             end
         end
@@ -600,8 +621,22 @@ function Gacha:Pull10Fast()
 
     local results = {
         matches = {},  -- Store which pulls had matches
-        deletedItems = {}  -- Track items already marked for deletion
+        deletedItems = {},  -- Track items already marked for deletion
+        pulledItems = {}  -- Track ALL items that have been pulled (to prevent duplicates)
     }
+
+    -- Helper function to check if item was already pulled
+    local function wasItemAlreadyPulled(item, pulledList)
+        for _, pulled in ipairs(pulledList) do
+            -- Check if same item (by ID and location)
+            if pulled.itemId == item.itemId and
+               pulled.bag == item.bag and
+               pulled.slot == item.slot then
+                return true
+            end
+        end
+        return false
+    end
 
     -- Process all 10 pulls at once
     for pullNum = 1, 10 do
@@ -630,6 +665,10 @@ function Gacha:Pull10Fast()
         self.bTierPityCount = self.bTierPityCount + 1
         CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
 
+        -- Increment bonus roll chance for EACH pull (5% per pull)
+        self.bonusRollChance = (self.bonusRollChance or 0) + self.bonusRollBaseIncrement
+        CattosShuffleDB.gachaBonusRollChance = self.bonusRollChance
+
         -- Get 3 random tiers/items for this pull
         local pullResult = {
             tiers = {},
@@ -638,11 +677,34 @@ function Gacha:Pull10Fast()
 
         for slot = 1, 3 do
             local tier = forcedPityTier or self:GetRandomTier()
-            -- Pass the exclude list to avoid selecting already deleted items
-            local item = self:GetRandomItemFromTier(tier, results.deletedItems)
+
+            -- Create combined exclude list (deleted items + already pulled items)
+            local excludeList = {}
+
+            -- Add deleted items
+            for _, item in ipairs(results.deletedItems) do
+                table.insert(excludeList, item)
+            end
+
+            -- Add already pulled items (to prevent duplicates of single items)
+            for _, item in ipairs(results.pulledItems) do
+                table.insert(excludeList, item)
+            end
+
+            -- Get random item excluding already used ones
+            local item = self:GetRandomItemFromTier(tier, excludeList)
 
             pullResult.tiers[slot] = tier
             pullResult.items[slot] = item
+
+            -- Track this item as pulled (but don't add to pulledItems yet, do it after all 3 slots)
+        end
+
+        -- Now add all 3 items from this pull to the pulledItems list
+        for _, item in ipairs(pullResult.items) do
+            if item and not wasItemAlreadyPulled(item, results.pulledItems) and not item.isDeleted then
+                table.insert(results.pulledItems, item)
+            end
         end
 
         -- Check for match
@@ -720,9 +782,12 @@ function Gacha:Pull10Fast()
                 deleteCount = math.random(1, victim.stackCount)
             end
 
-            -- Add to deleted items list
+            -- Add to deleted items list IMMEDIATELY
             if victim then
                 table.insert(results.deletedItems, victim)
+
+                -- Also mark this specific item as "used" so it can't appear again
+                victim.isDeleted = true
             end
 
             -- Override the result to mark it for deletion
@@ -747,6 +812,33 @@ function Gacha:Pull10Fast()
                 self.shards = math.min((self.shards or 0) + 1, self.maxShards)
                 CattosShuffleDB.gachaShards = self.shards
             end
+        end
+    end
+
+    -- Check for bonus rolls after x10 pull
+    -- Each pull increments bonus chance by 5%, so x10 = 50% added
+    print(string.format("|cff888888DEBUG: Bonus chance after x10: %d%% | Projectiles: %d|r",
+        self.bonusRollChance or 0,
+        self.projectilePool and #self.projectilePool or 0))
+
+    self:CheckBonusRoll()
+
+    -- Clean up temporary isDeleted flags from all items in the pool
+    -- This prevents items from being permanently marked as deleted
+    for _, tierPool in pairs(self.tierPools) do
+        if tierPool then
+            for _, item in ipairs(tierPool) do
+                if item and item.isDeleted then
+                    item.isDeleted = nil  -- Remove the temporary flag
+                end
+            end
+        end
+    end
+
+    -- Also clean up from the main item pool
+    for _, item in ipairs(self.itemPool) do
+        if item and item.isDeleted then
+            item.isDeleted = nil
         end
     end
 
@@ -1028,6 +1120,10 @@ function Gacha:OnPullComplete()
     self.bTierPityCount = self.bTierPityCount + 1
     CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
 
+    -- Increment bonus roll chance (5% per roll, accumulates)
+    self.bonusRollChance = (self.bonusRollChance or 0) + self.bonusRollBaseIncrement
+    CattosShuffleDB.gachaBonusRollChance = self.bonusRollChance
+
     -- Check for pending pity resets from DoPull
     if self.pendingMainPityReset then
         self.spinCount = 0
@@ -1124,9 +1220,295 @@ function Gacha:OnPullComplete()
         PlaySound(3332, "SFX")  -- Quest complete sound
     end
 
+    -- Check for BONUS ROLL (projectiles/throwables)
+    self:CheckBonusRoll()
+
     -- Update UI to show shard count
     if self.UpdateUI then
         self:UpdateUI()
+    end
+end
+
+-- Show bonus roll window with percentage animation
+function Gacha:ShowBonusRollWindow(item)
+    -- Create frame if it doesn't exist
+    if not self.bonusRollFrame then
+        local frame = CreateFrame("Frame", "CattosGachaBonusRoll", UIParent, "BackdropTemplate")
+        frame:SetSize(350, 250)
+        frame:SetPoint("CENTER", 0, 150)  -- Slightly higher
+        frame:SetFrameStrata("FULLSCREEN_DIALOG")  -- Highest strata
+        frame:SetFrameLevel(200)  -- Very high frame level to be above x10 window
+        frame:SetMovable(true)
+        frame:EnableMouse(true)
+        frame:RegisterForDrag("LeftButton")
+        frame:SetScript("OnDragStart", frame.StartMoving)
+        frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+
+        -- Backdrop
+        frame:SetBackdrop({
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",  -- Solid black texture
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = false,
+            edgeSize = 32,
+            insets = { left = 11, right = 12, top = 12, bottom = 11 }
+        })
+        frame:SetBackdropColor(0, 0, 0, 1)  -- Fully opaque black background
+        frame:SetBackdropBorderColor(1, 0, 0, 1)  -- Red border for danger
+
+        -- Add an extra solid background texture to ensure no transparency
+        local bg = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+        bg:SetAllPoints(frame)
+        bg:SetColorTexture(0, 0, 0, 1)  -- Solid black
+        frame.solidBg = bg
+
+        -- Title
+        frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+        frame.title:SetPoint("TOP", frame, "TOP", 0, -20)
+        frame.title:SetText("|cffff0000BONUS ROLL - PROJECTILE DELETION|r")
+
+        -- Item icon
+        frame.icon = frame:CreateTexture(nil, "ARTWORK")
+        frame.icon:SetSize(64, 64)
+        frame.icon:SetPoint("TOP", frame.title, "BOTTOM", 0, -15)
+
+        -- Item name
+        frame.itemName = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        frame.itemName:SetPoint("TOP", frame.icon, "BOTTOM", 0, -10)
+
+        -- Stack info
+        frame.stackInfo = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        frame.stackInfo:SetPoint("TOP", frame.itemName, "BOTTOM", 0, -5)
+
+        -- Percentage display (big)
+        frame.percentDisplay = frame:CreateFontString(nil, "OVERLAY", "NumberFontNormalHuge")
+        frame.percentDisplay:SetPoint("TOP", frame.stackInfo, "BOTTOM", 0, -15)
+        frame.percentDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")
+        frame.percentDisplay:SetTextColor(1, 1, 0)  -- Yellow
+
+        -- Result text
+        frame.resultText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        frame.resultText:SetPoint("TOP", frame.percentDisplay, "BOTTOM", 0, -10)
+        frame.resultText:SetText("")
+
+        -- Close button (appears after animation)
+        frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+        frame.closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+        frame.closeButton:Hide()  -- Hidden during animation
+
+        self.bonusRollFrame = frame
+    end
+
+    local frame = self.bonusRollFrame
+
+    -- Force non-transparent background every time we show the window
+    frame:SetBackdropColor(0, 0, 0, 1)  -- Fully opaque black
+    frame:SetBackdropBorderColor(1, 0, 0, 1)  -- Red border
+
+    -- Ensure solid background is visible
+    if frame.solidBg then
+        frame.solidBg:SetColorTexture(0, 0, 0, 1)
+        frame.solidBg:Show()
+    end
+
+    -- Set item info
+    frame.icon:SetTexture(item.icon)
+    frame.itemName:SetText(item.link or item.name)
+
+    local stackText = ""
+    if item.stackCount and item.stackCount > 1 then
+        stackText = string.format("|cffccccccStack of %d|r", item.stackCount)
+    else
+        stackText = "|cffccccccSingle item|r"
+    end
+    frame.stackInfo:SetText(stackText)
+
+    -- Reset displays
+    frame.percentDisplay:SetText("0")
+    frame.resultText:SetText("")
+    frame.closeButton:Hide()
+
+    -- Show frame
+    frame:Show()
+
+    -- Start percentage animation
+    self:AnimateBonusRollPercentage(item)
+end
+
+-- Animate the percentage roll for bonus deletion
+function Gacha:AnimateBonusRollPercentage(item)
+    local frame = self.bonusRollFrame
+    if not frame then return end
+
+    -- Determine final percentage (1-100%)
+    local finalPercent = math.random(1, 100)
+
+    -- Animation variables
+    local currentPercent = 0
+    local animationTime = 0
+    local animationDuration = 3  -- 3 seconds total
+    local tickSpeed = 0.03
+    local nextSound = 0
+    local soundInterval = 0.1
+
+    -- Cancel any existing animation
+    if self.bonusRollTicker then
+        self.bonusRollTicker:Cancel()
+    end
+
+    -- Start the animation
+    self.bonusRollTicker = C_Timer.NewTicker(tickSpeed, function(ticker)
+        animationTime = animationTime + tickSpeed
+
+        -- Calculate progress (with easing)
+        local progress = animationTime / animationDuration
+        if progress >= 1 then
+            progress = 1
+        end
+
+        -- Easing function (slow down at end)
+        local easedProgress = 1 - math.pow(1 - progress, 3)
+
+        -- Calculate current displayed percentage
+        currentPercent = math.floor(easedProgress * finalPercent)
+
+        -- Calculate current deletion amount based on current percentage
+        local currentDeleteAmount = 1
+        if item.stackCount and item.stackCount > 1 then
+            currentDeleteAmount = math.max(1, math.floor(item.stackCount * currentPercent / 100))
+        end
+
+        -- Update display with color based on percentage
+        local r, g, b = 0, 1, 0  -- Green
+        if currentPercent >= 75 then
+            r, g, b = 1, 0, 0  -- Red for high percentage
+        elseif currentPercent >= 50 then
+            r, g, b = 1, 0.5, 0  -- Orange for medium
+        elseif currentPercent >= 25 then
+            r, g, b = 1, 1, 0  -- Yellow for low-medium
+        end
+
+        frame.percentDisplay:SetTextColor(r, g, b)
+
+        -- Show only the amount, no percentage
+        frame.percentDisplay:SetText(tostring(currentDeleteAmount))
+
+        -- Play tick sound
+        if animationTime >= nextSound and progress < 0.9 then
+            PlaySound(1210, "SFX")  -- Money sound
+            nextSound = animationTime + soundInterval * (1 + progress * 2)  -- Slow down sounds
+        end
+
+        -- Check if animation is complete
+        if progress >= 1 then
+            ticker:Cancel()
+            self.bonusRollTicker = nil
+
+            -- Final display
+            frame.percentDisplay:SetText(finalPercent .. "%")
+
+            -- Calculate actual deletion amount
+            local deleteAmount = 1
+            if item.stackCount and item.stackCount > 1 then
+                deleteAmount = math.max(1, math.floor(item.stackCount * finalPercent / 100))
+            end
+
+            -- Show result with both percentage and amount
+            local resultColor = "|cffff0000"  -- Red
+            if finalPercent <= 25 then
+                resultColor = "|cff00ff00"  -- Green for low
+            elseif finalPercent <= 50 then
+                resultColor = "|cffffcc00"  -- Yellow for medium
+            end
+
+            -- Show only the final amount
+            frame.percentDisplay:SetText(tostring(deleteAmount))
+            frame.resultText:SetText(string.format("%sDELETING: %d of %d|r",
+                resultColor, deleteAmount, item.stackCount or 1))
+
+            -- Play final sound based on percentage
+            if finalPercent >= 75 then
+                PlaySound(888, "SFX")  -- Warning sound for high deletion
+            elseif finalPercent >= 50 then
+                PlaySound(3334, "SFX")  -- Item destroy sound
+            else
+                PlaySound(3332, "SFX")  -- Quest complete sound for low deletion
+            end
+
+            -- Show close button
+            frame.closeButton:Show()
+
+            -- Store deletion info
+            self.pendingProjectileDeletion = {
+                item = item,
+                percentage = finalPercent,
+                amount = deleteAmount
+            }
+
+            -- Actually perform the deletion
+            self:PerformProjectileDeletion(item, deleteAmount)
+        end
+    end)
+end
+
+-- Perform the actual projectile deletion
+function Gacha:PerformProjectileDeletion(item, deleteAmount)
+    if InCombatLockdown() then
+        print("|cffff0000Cannot delete during combat!|r")
+        return
+    end
+
+    -- Just show the deletion message in chat, no popup
+    print("|cffff0000========================================|r")
+    print("|cffffcc00BONUS ROLL PROJECTILE DELETION!|r")
+    print(string.format("|cffff0000DELETE: %d x %s|r", deleteAmount, item.link or item.name))
+    print("|cffff0000Please delete the items manually now!|r")
+    print("|cffff0000========================================|r")
+
+    -- Play warning sound
+    PlaySound(3334, "SFX")  -- Item destroy sound
+end
+
+-- Check and handle bonus roll for projectiles
+function Gacha:CheckBonusRoll()
+    print("|cff888888DEBUG: CheckBonusRoll called|r")
+
+    -- Check if we have any projectiles
+    if not self.projectilePool or #self.projectilePool == 0 then
+        -- No projectiles = no bonus roll triggered
+        print("|cff888888DEBUG: No projectiles in pool, skipping bonus roll|r")
+        return
+    end
+
+    -- Roll for bonus (accumulated chance)
+    local roll = math.random(1, 100)
+    local currentChance = self.bonusRollChance or 0
+
+    print(string.format("|cff888888Bonus Roll: %d vs %d%% chance (Pool: %d projectiles)|r",
+        roll, currentChance, #self.projectilePool))
+
+    if roll <= currentChance then
+        -- BONUS ROLL HIT!
+        print("|cffffcc00>>> BONUS ROLL TRIGGERED! <<<|r")
+        print("|cffff0000Projectile/Throwable deletion incoming!|r")
+
+        -- Reset bonus chance to 0
+        self.bonusRollChance = 0
+        CattosShuffleDB.gachaBonusRollChance = 0
+
+        -- Pick a random projectile from the pool
+        local bonusItem = self.projectilePool[math.random(1, #self.projectilePool)]
+
+        if bonusItem then
+            -- Play special sound for bonus
+            PlaySound(888, "SFX")  -- Warning sound
+
+            -- Show the bonus roll window with animation
+            self:ShowBonusRollWindow(bonusItem)
+        end
+    else
+        -- No bonus this time, chance continues to accumulate
+        print(string.format("|cff888888Bonus roll failed. Chance increases to %d%% for next roll|r",
+            currentChance + self.bonusRollBaseIncrement))
     end
 end
 
@@ -1978,6 +2360,13 @@ function Gacha:Initialize()
         self.bTierPityCount = 0
     end
 
+    -- Load saved bonus roll chance
+    if CattosShuffleDB and CattosShuffleDB.gachaBonusRollChance then
+        self.bonusRollChance = CattosShuffleDB.gachaBonusRollChance
+    else
+        self.bonusRollChance = 0
+    end
+
     -- Don't setup x10 animation here - it will be setup when the Gacha window is opened
 
     -- Register combat events
@@ -2015,14 +2404,26 @@ function Gacha:Initialize()
             if Gacha.itemListFrame and Gacha.itemListFrame:IsShown() then
                 Gacha.itemListFrame:Hide()
             end
+
+            -- Also hide bonus roll window if open (but keep animation running)
+            if Gacha.bonusRollFrame and Gacha.bonusRollFrame:IsShown() then
+                Gacha.wasBonusRollVisibleBeforeCombat = true
+                Gacha.bonusRollFrame:Hide()
+                -- Don't cancel the animation ticker, let it continue in background
+                print("|cffff0000Bonus Roll window hidden - entering combat!|r")
+            else
+                Gacha.wasBonusRollVisibleBeforeCombat = false
+            end
         elseif event == "PLAYER_REGEN_ENABLED" then
             -- Leaving combat - handle both reopening and pending opens
 
             -- First check if window should reopen (was visible before combat)
             local shouldReopen = Gacha.wasVisibleBeforeCombat
             local shouldReopenX10 = Gacha.wasX10VisibleBeforeCombat
+            local shouldReopenBonusRoll = Gacha.wasBonusRollVisibleBeforeCombat
             Gacha.wasVisibleBeforeCombat = false
             Gacha.wasX10VisibleBeforeCombat = false
+            Gacha.wasBonusRollVisibleBeforeCombat = false
 
             if shouldReopen and Gacha.frame then
                 Gacha.frame:Show()
@@ -2041,6 +2442,18 @@ function Gacha:Initialize()
                     Gacha:ResumeX10Animation()
                 else
                     print("|cff00ff00Combat ended - x10 Animation reopened!|r")
+                end
+            end
+
+            -- Reopen bonus roll window if it was open
+            if shouldReopenBonusRoll and Gacha.bonusRollFrame then
+                Gacha.bonusRollFrame:Show()
+                print("|cff00ff00Combat ended - Bonus Roll window reopened!|r")
+                -- Animation should still be running if it wasn't finished
+                -- Check if animation completed while hidden
+                if not Gacha.bonusRollTicker then
+                    -- Animation completed while window was hidden
+                    print("|cffffcc00Bonus Roll animation completed during combat|r")
                 end
             end
 

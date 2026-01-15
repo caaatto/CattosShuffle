@@ -234,6 +234,10 @@ function Gacha:CalculateCompactX10Results()
         CattosShuffleDB.gachaSpinCount = self.spinCount
         CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
 
+        -- Increment bonus roll chance for EACH pull (5% per pull)
+        self.bonusRollChance = (self.bonusRollChance or 0) + self.bonusRollBaseIncrement
+        CattosShuffleDB.gachaBonusRollChance = self.bonusRollChance
+
         -- Generate 3 slots for this pull
         local pullResult = {
             tiers = {},
@@ -807,6 +811,37 @@ function Gacha:OnCompactX10AnimationComplete(displayResults)
 
     -- Play completion sound
     PlaySound(3332, "SFX")
+
+    -- Check for bonus roll after x10 animation completes
+    -- Each pull already incremented bonus chance by 5%, so x10 = 50% added
+    print(string.format("|cff888888DEBUG: Bonus chance after x10 animation: %d%% | Projectiles: %d|r",
+        self.bonusRollChance or 0,
+        self.projectilePool and #self.projectilePool or 0))
+
+    self:CheckBonusRoll()
+
+    -- Clean up temporary isDeleted flags from all items in the pool
+    -- This prevents items from being permanently marked as deleted
+    if self.tierPools then
+        for _, tierPool in pairs(self.tierPools) do
+            if tierPool then
+                for _, item in ipairs(tierPool) do
+                    if item and item.isDeleted then
+                        item.isDeleted = nil  -- Remove the temporary flag
+                    end
+                end
+            end
+        end
+    end
+
+    -- Also clean up from the main item pool
+    if self.itemPool then
+        for _, item in ipairs(self.itemPool) do
+            if item and item.isDeleted then
+                item.isDeleted = nil
+            end
+        end
+    end
 
     -- Update main UI
     if self.UpdateUI then

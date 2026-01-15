@@ -609,10 +609,14 @@ function Gacha:UpdateGachaUI()
                 -- Show when getting closer to main pity
                 self.frame.spinCounter:SetText(string.format("|cffffcc00Spins until pity: %d|r", remaining))
             else
-                -- Normal display - show both counters
-                self.frame.spinCounter:SetText(string.format("|cffccccccB-Tier: %d/%d | Main: %d/%d|r",
+                -- Normal display - show both counters and bonus roll chance
+                local bonusText = ""
+                if Gacha.bonusRollChance and Gacha.bonusRollChance > 0 then
+                    bonusText = string.format(" | Bonus: %d%%", Gacha.bonusRollChance)
+                end
+                self.frame.spinCounter:SetText(string.format("|cffccccccB-Tier: %d/%d | Main: %d/%d%s|r",
                     Gacha.bTierPityCount, Gacha.bTierPityThreshold,
-                    Gacha.spinCount, Gacha.pityThreshold))
+                    Gacha.spinCount, Gacha.pityThreshold, bonusText))
             end
         end
     end
@@ -974,6 +978,13 @@ function Gacha:Toggle()
             Gacha.bTierPityCount = CattosShuffleDB.gachaBTierPityCount
         else
             Gacha.bTierPityCount = 0
+        end
+
+        -- Load saved bonus roll chance
+        if CattosShuffleDB and CattosShuffleDB.gachaBonusRollChance then
+            Gacha.bonusRollChance = CattosShuffleDB.gachaBonusRollChance
+        else
+            Gacha.bonusRollChance = 0
         end
 
         self:BuildItemPool()
