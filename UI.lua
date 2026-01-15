@@ -94,7 +94,8 @@ function CattosShuffle:InitializeUI()
     -- Version number at bottom right
     local versionBottom = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     versionBottom:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -15, 15)
-    versionBottom:SetText("|cff666666v2.3.2|r")
+    local bottomVersion = GetAddOnMetadata("CattosShuffle", "Version") or "Unknown"
+    versionBottom:SetText("|cff666666v" .. bottomVersion .. "|r")
     versionBottom:SetAlpha(0.6)
 
     -- Add to ESC close list so ESC key closes the window
