@@ -1,7 +1,6 @@
 -- CattosShuffle - Gacha Tier System
 -- Author: Amke & Assistant
 -- Version: 2.0.0
-
 local addonName, CattosShuffle = ...
 local L = CattosShuffle.L
 
@@ -13,35 +12,55 @@ local Gacha = CattosShuffle.Gacha
 local TIER_INFO = {
     ["C"] = {
         name = "C Tier",
-        color = {r=0.5, g=0.5, b=0.5},
+        color = {
+            r = 0.5,
+            g = 0.5,
+            b = 0.5
+        },
         hex = "ff808080",
-        weight = 71.6,  -- 71.6% base chance (balanced for shard system)
+        weight = 71.6, -- 71.6% base chance (balanced for shard system)
         description = "Crafting Materials, Junk & Misc"
     },
     ["B"] = {
         name = "B Tier",
-        color = {r=0.6, g=0.8, b=1.0},
+        color = {
+            r = 0.6,
+            g = 0.8,
+            b = 1.0
+        },
         hex = "ff99ccff",
-        weight = 20,  -- 20% base chance (unchanged)
+        weight = 20, -- 20% base chance (unchanged)
         description = "Consumables & Quest Items"
     },
     ["A"] = {
         name = "A Tier",
-        color = {r=0.6, g=0.2, b=0.8},
+        color = {
+            r = 0.6,
+            g = 0.2,
+            b = 0.8
+        },
         hex = "ff9933cc",
-        weight = 7,   -- 7% base chance (slightly decreased)
+        weight = 7, -- 7% base chance (slightly decreased)
         description = "Weapons, Armor & Bags (Not Equipped)"
     },
     ["S"] = {
         name = "S Tier",
-        color = {r=1.0, g=0.84, b=0},
+        color = {
+            r = 1.0,
+            g = 0.84,
+            b = 0
+        },
         hex = "ffffd700",
-        weight = 1.1,   -- 1.1% base chance (tuned for ~75 pulls per 3 shards)
+        weight = 1.1, -- 1.1% base chance (tuned for ~75 pulls per 3 shards)
         description = "Currently Equipped Items"
     },
     ["SS"] = {
         name = "SS Tier",
-        color = {r=1.0, g=0.5, b=0},
+        color = {
+            r = 1.0,
+            g = 0.5,
+            b = 0
+        },
         hex = "ffff8000",
         weight = 0.3, -- 0.3% base chance (ULTRA RARE, tuned for shard balance)
         description = "Epic/Legendary Equipped Items"
@@ -50,9 +69,9 @@ local TIER_INFO = {
 
 -- Rarity multipliers for tier upgrades
 local RARITY_UPGRADE = {
-    [3] = 1,  -- Rare: upgrades tier by 1
-    [4] = 2,  -- Epic: upgrades tier by 2
-    [5] = 3,  -- Legendary: upgrades tier by 3
+    [3] = 1, -- Rare: upgrades tier by 1
+    [4] = 2, -- Epic: upgrades tier by 2
+    [5] = 3 -- Legendary: upgrades tier by 3
 }
 
 -- State
@@ -67,9 +86,18 @@ Gacha.tierPools = {
 Gacha.totalItems = 0
 Gacha.isSpinning = false
 Gacha.slots = {
-    [1] = { current = nil, item = nil },
-    [2] = { current = nil, item = nil },
-    [3] = { current = nil, item = nil }
+    [1] = {
+        current = nil,
+        item = nil
+    },
+    [2] = {
+        current = nil,
+        item = nil
+    },
+    [3] = {
+        current = nil,
+        item = nil
+    }
 }
 Gacha.pendingOpenAfterCombat = false
 
@@ -86,13 +114,15 @@ Gacha.bTierPityCount = 0
 Gacha.bTierPityThreshold = 10
 
 -- Bonus Roll System (for Projectiles/Throwables)
-Gacha.bonusRollChance = 0  -- Starts at 0%, accumulates 5% per roll
-Gacha.bonusRollBaseIncrement = 5  -- 5% per roll
-Gacha.projectilePool = {}  -- Separate pool for projectiles/throwables
+Gacha.bonusRollChance = 0 -- Starts at 0%, accumulates 5% per roll
+Gacha.bonusRollBaseIncrement = 5 -- 5% per roll
+Gacha.projectilePool = {} -- Separate pool for projectiles/throwables
 
 -- Check if item is quest item
 local function IsQuestItem(itemId)
-    if not itemId then return false end
+    if not itemId then
+        return false
+    end
 
     -- Use tooltip scanning to detect quest items
     local tooltipName = "CattosGachaScanTooltip"
@@ -105,10 +135,51 @@ local function IsQuestItem(itemId)
 
     -- Scan tooltip lines for "Quest Item"
     for i = 1, tooltip:NumLines() do
-        local text = _G[tooltipName.."TextLeft"..i]:GetText()
+        local text = _G[tooltipName .. "TextLeft" .. i]:GetText()
         if text and (text:find("Quest Item") or text:find("Questgegenstand")) then
             return true
         end
+    end
+
+    return false
+end
+
+-- Check if mount is epic (100% speed) or normal (60% speed)
+local function IsEpicMount(itemName)
+    if not itemName then return false end
+    local name = itemName:lower()
+
+    -- Epic (100%) Mount keywords - SS Tier
+    -- English keywords
+    if string.find(name, "swift") or
+       string.find(name, "epic") or
+       string.find(name, "great white kodo") or
+       string.find(name, "great gray kodo") or
+       string.find(name, "great brown kodo") or
+       string.find(name, "skeletal warhorse") or
+       string.find(name, "black war") or
+       string.find(name, "deathcharger") or
+       string.find(name, "rivendare") or
+       string.find(name, "razzashi raptor") or
+       string.find(name, "zulian tiger") or
+       string.find(name, "qiraji battle") or
+       string.find(name, "qiraji resonating crystal") then
+        return true
+    end
+
+    -- German keywords for epic mounts
+    if string.find(name, "schnell") or -- Swift = Schnell
+       string.find(name, "episch") or
+       string.find(name, "großer weißer kodo") or
+       string.find(name, "großer grauer kodo") or
+       string.find(name, "großer brauner kodo") or
+       string.find(name, "skelettstreitross") or
+       string.find(name, "schwarzes kriegs") or
+       string.find(name, "todesross") or
+       string.find(name, "razzashi") or
+       string.find(name, "zulianischer tiger") or
+       string.find(name, "qiraji") then
+        return true
     end
 
     return false
@@ -141,235 +212,210 @@ function Gacha:GetItemTier(item)
 
     -- PRIORITY 2: Non-equipped items categorization
 
-    -- B TIER: Quest Items & Consumables
-    -- Quest items
-    if item.isQuest or IsQuestItem(item.itemId) then
+    -- SS TIER: Special Ultra Rare Items
+    -- Light of Elune - Ultra rare special item
+    if item.name and
+        (string.find(item.name:lower(), "light of elune") or string.find(item.name:lower(), "licht von elune")) then
+        tier = "SS"
+
+        -- B TIER: Quest Items & Consumables
+        -- Quest items
+    elseif item.isQuest or IsQuestItem(item.itemId) then
         tier = "B"
-    -- Consumables (Food, Potions, Elixirs, Flasks, Bandages, etc.)
+        -- Consumables (Food, Potions, Elixirs, Flasks, Bandages, etc.)
     elseif baseType == "Consumable" or baseType == "Verbrauchbar" or -- EN/DE base
-           baseType == "Verbrauchsgüter" or -- DE alternative
-           subType == "Food & Drink" or subType == "Essen & Trinken" or
-           subType == "Potion" or subType == "Trank" or
-           subType == "Elixir" or subType == "Elixier" or
-           subType == "Flask" or subType == "Fläschchen" or
-           subType == "Bandage" or subType == "Verband" or
-           subType == "Scroll" or subType == "Rolle" or
-           subType == "Schriftrolle" or
-           subType == "Other" and baseType == "Consumable" or
-           subType == "Explosives" or subType == "Sprengstoffe" or
-           subType == "Devices" or subType == "Geräte" then
+    baseType == "Verbrauchsgüter" or -- DE alternative
+    subType == "Food & Drink" or subType == "Essen & Trinken" or subType == "Potion" or subType == "Trank" or subType ==
+        "Elixir" or subType == "Elixier" or subType == "Flask" or subType == "Fläschchen" or subType == "Bandage" or
+        subType == "Verband" or subType == "Scroll" or subType == "Rolle" or subType == "Schriftrolle" or subType ==
+        "Other" and baseType == "Consumable" or subType == "Explosives" or subType == "Sprengstoffe" or subType ==
+        "Devices" or subType == "Geräte" then
         tier = "B"
 
-    -- A TIER: Equipable items, Pets, Mounts (Not currently worn)
-    -- Companion Pets - Check by name FIRST (most reliable for WoW Classic and different language clients)
-    -- In WoW Classic, pets might just be "Miscellaneous" items without proper subtype
-    elseif item.name and (
-               -- English pet names (Classic WoW complete list)
-               string.find(item.name:lower(), "cat carrier") or  -- Multiple cat variants
-               string.find(item.name:lower(), "parrot cage") or  -- Multiple parrot variants
-               string.find(item.name:lower(), "rabbit crate") or
-               string.find(item.name:lower(), "turtle box") or
-               string.find(item.name:lower(), "rat cage") or
-               string.find(item.name:lower(), "prairie dog whistle") or
-               string.find(item.name:lower(), "cockroach") or
-               string.find(item.name:lower(), "ancona chicken") or
-               string.find(item.name:lower(), "worg pup") or
-               string.find(item.name:lower(), "worg carrier") or
-               string.find(item.name:lower(), "smolderweb carrier") or
-               string.find(item.name:lower(), "piglet's collar") or  -- Mr. Wiggles
-               string.find(item.name:lower(), "great horned owl") or
-               string.find(item.name:lower(), "hawk owl") or
-               string.find(item.name:lower(), "crimson snake") or
-               string.find(item.name:lower(), "black kingsnake") or
-               string.find(item.name:lower(), "brown snake") or
-               string.find(item.name:lower(), "wood frog box") or
-               string.find(item.name:lower(), "tree frog box") or
-               string.find(item.name:lower(), "sprite darter egg") or
-               string.find(item.name:lower(), "chicken egg") or
-               string.find(item.name:lower(), "westfall chicken") or
-               string.find(item.name:lower(), "pet bombling") or
-               string.find(item.name:lower(), "lil' smoky") or
-               string.find(item.name:lower(), "lifelike mechanical toad") or
-               string.find(item.name:lower(), "mechanical squirrel") or
-               string.find(item.name:lower(), "mechanical chicken") or
-               string.find(item.name:lower(), "dark whelpling") or
-               string.find(item.name:lower(), "tiny crimson whelpling") or
-               string.find(item.name:lower(), "tiny emerald whelpling") or
-               string.find(item.name:lower(), "azure whelpling") or
-               string.find(item.name:lower(), "disgusting oozeling") or
-               string.find(item.name:lower(), "red helper box") or  -- Winter's Little Helper
-               string.find(item.name:lower(), "green helper box") or  -- Winter Reindeer
-               string.find(item.name:lower(), "snowman kit") or
-               string.find(item.name:lower(), "jingling bell") or  -- Winter Reindeer
-               string.find(item.name:lower(), "captured flame") or
-               string.find(item.name:lower(), "truesilver shafted arrow") or  -- Peddlefeet
-               string.find(item.name:lower(), "silver shafted arrow") or  -- Peddlefeet
-               string.find(item.name:lower(), "blood parrot") or
-               string.find(item.name:lower(), "mini diablo") or  -- Collector's Edition
-               string.find(item.name:lower(), "panda cub") or  -- Collector's Edition
-               string.find(item.name:lower(), "panda collar") or  -- Collector's Edition
-               string.find(item.name:lower(), "zergling leash") or  -- Collector's Edition
-               string.find(item.name:lower(), "diablo stone") or  -- Collector's Edition
-               string.find(item.name:lower(), "banana charm") or  -- Collector's Edition
-               string.find(item.name:lower(), "pet") and string.find(item.name:lower(), "carrier") or
-               -- German pet names (Classic WoW vollständige Liste)
-               string.find(item.name:lower(), "katzenträger") or
-               string.find(item.name:lower(), "katzentransportkorb") or
-               string.find(item.name:lower(), "papageienkäfig") or
-               string.find(item.name:lower(), "schlangenkäfig") or
-               string.find(item.name:lower(), "kaninchenkiste") or
-               string.find(item.name:lower(), "hasenkiste") or
-               string.find(item.name:lower(), "schildkrötenbox") or
-               string.find(item.name:lower(), "schildkrötenkiste") or
-               string.find(item.name:lower(), "eulenpfeife") or
-               string.find(item.name:lower(), "hornuhu") or  -- Great Horned Owl
-               string.find(item.name:lower(), "habichtseule") or  -- Hawk Owl
-               string.find(item.name:lower(), "sperbereule") or  -- Hawk Owl alternative
-               string.find(item.name:lower(), "rattenkäfig") or
-               string.find(item.name:lower(), "präriehundpfeife") or
-               string.find(item.name:lower(), "kakerlake") or
-               string.find(item.name:lower(), "schabe") or
-               string.find(item.name:lower(), "ancona") or
-               string.find(item.name:lower(), "worgwelpe") or
-               string.find(item.name:lower(), "worgträger") or
-               string.find(item.name:lower(), "schwelnetztransporter") or
-               string.find(item.name:lower(), "ferkelhalsband") or  -- Piglet's Collar
-               string.find(item.name:lower(), "purpurrote schlange") or  -- Crimson Snake
-               string.find(item.name:lower(), "schwarze königsnatter") or  -- Black Kingsnake
-               string.find(item.name:lower(), "braune schlange") or  -- Brown Snake
-               string.find(item.name:lower(), "waldlaubfroschkiste") or  -- Wood Frog Box
-               string.find(item.name:lower(), "baumfroschkiste") or  -- Tree Frog Box
-               string.find(item.name:lower(), "feendrachen") or  -- Sprite Darter
-               string.find(item.name:lower(), "hühnerei") or  -- Chicken Egg
-               string.find(item.name:lower(), "westfall-huhn") or  -- Westfall Chicken
-               string.find(item.name:lower(), "haustierbömbling") or  -- Pet Bombling
-               string.find(item.name:lower(), "kleine rauchmaschine") or  -- Lil' Smoky
-               string.find(item.name:lower(), "lebensechte mechanische kröte") or  -- Lifelike Mechanical Toad
-               string.find(item.name:lower(), "mechanisches eichhörnchen") or  -- Mechanical Squirrel
-               string.find(item.name:lower(), "mechanisches huhn") or  -- Mechanical Chicken
-               string.find(item.name:lower(), "dunkler welpling") or  -- Dark Whelpling
-               string.find(item.name:lower(), "winziger purpurroter welpling") or  -- Tiny Crimson Whelpling
-               string.find(item.name:lower(), "winziger smaragdgrüner welpling") or  -- Tiny Emerald Whelpling
-               string.find(item.name:lower(), "azurblauer welpling") or  -- Azure Whelpling
-               string.find(item.name:lower(), "ekelhaftes schleimchen") or  -- Disgusting Oozeling
-               string.find(item.name:lower(), "roter helferkasten") or  -- Red Helper Box
-               string.find(item.name:lower(), "grüner helferkasten") or  -- Green Helper Box
-               string.find(item.name:lower(), "schneemannbausatz") or  -- Snowman Kit
-               string.find(item.name:lower(), "schellenglocke") or  -- Jingling Bell
-               string.find(item.name:lower(), "eingefangene flamme") or  -- Captured Flame
-               string.find(item.name:lower(), "wahrer silberpfeil") or  -- Truesilver Shafted Arrow
-               string.find(item.name:lower(), "silberpfeil") or  -- Silver Shafted Arrow
-               string.find(item.name:lower(), "blutpapagei") or  -- Blood Parrot
-               string.find(item.name:lower(), "mini-diablo") or  -- Collector's Edition
-               string.find(item.name:lower(), "pandajunges") or  -- Collector's Edition
-               string.find(item.name:lower(), "pandahalsband") or  -- Collector's Edition
-               string.find(item.name:lower(), "zergling-leine") or  -- Collector's Edition
-               string.find(item.name:lower(), "diablostein") or  -- Collector's Edition
-               string.find(item.name:lower(), "bananenanhänger") or  -- Collector's Edition
-               string.find(item.name:lower(), "haustierträger") or
-               string.find(item.name:lower(), "haustiertransportbox") or
-               -- More specific German pet names
-               string.find(item.name:lower(), "siamkatze") or
-               string.find(item.name:lower(), "bombaykatze") or
-               string.find(item.name:lower(), "orangefarbene tigerkatze") or
-               string.find(item.name:lower(), "silbergetigerte katze") or
-               string.find(item.name:lower(), "maine coon") or
-               string.find(item.name:lower(), "schneeschuh") or
-               string.find(item.name:lower(), "ara") or  -- Macaw parrots
-               string.find(item.name:lower(), "hyazinthara") or
-               string.find(item.name:lower(), "grüner flügelara") or
-               string.find(item.name:lower(), "scharlachara") or
-               string.find(item.name:lower(), "fledermausküken") or
-               string.find(item.name:lower(), "mechanisches huhn") or
-               string.find(item.name:lower(), "winziger wanderdrache") or
-               string.find(item.name:lower(), "drachenfalke") or
-               string.find(item.name:lower(), "sprite") or
-               string.find(item.name:lower(), "welpling") or
-               string.find(item.name:lower(), "raptorküken") or
-               -- Generic German pet terms
-               string.find(item.name:lower(), "träger") and (string.find(item.name:lower(), "katze") or string.find(item.name:lower(), "tier")) or
-               string.find(item.name:lower(), "käfig") and string.find(item.name:lower(), "tier") or
-               string.find(item.name:lower(), "ei") and string.find(item.name:lower(), "haustier")
-           ) then
+        -- A TIER: Equipable items, Pets, Mounts (Not currently worn)
+        -- Companion Pets - Check by name FIRST (most reliable for WoW Classic and different language clients)
+        -- In WoW Classic, pets might just be "Miscellaneous" items without proper subtype
+    elseif item.name and ( -- English pet names (Classic WoW complete list)
+    string.find(item.name:lower(), "cat carrier") or -- Multiple cat variants
+    string.find(item.name:lower(), "parrot cage") or -- Multiple parrot variants
+    string.find(item.name:lower(), "rabbit crate") or string.find(item.name:lower(), "turtle box") or
+        string.find(item.name:lower(), "rat cage") or string.find(item.name:lower(), "prairie dog whistle") or
+        string.find(item.name:lower(), "cockroach") or string.find(item.name:lower(), "ancona chicken") or
+        string.find(item.name:lower(), "worg pup") or string.find(item.name:lower(), "worg carrier") or
+        string.find(item.name:lower(), "smolderweb carrier") or string.find(item.name:lower(), "piglet's collar") or -- Mr. Wiggles
+        string.find(item.name:lower(), "great horned owl") or string.find(item.name:lower(), "hawk owl") or
+        string.find(item.name:lower(), "crimson snake") or string.find(item.name:lower(), "black kingsnake") or
+        string.find(item.name:lower(), "brown snake") or string.find(item.name:lower(), "wood frog box") or
+        string.find(item.name:lower(), "tree frog box") or string.find(item.name:lower(), "sprite darter egg") or
+        string.find(item.name:lower(), "chicken egg") or string.find(item.name:lower(), "westfall chicken") or
+        string.find(item.name:lower(), "pet bombling") or string.find(item.name:lower(), "lil' smoky") or
+        string.find(item.name:lower(), "lifelike mechanical toad") or
+        string.find(item.name:lower(), "mechanical squirrel") or string.find(item.name:lower(), "mechanical chicken") or
+        string.find(item.name:lower(), "dark whelpling") or string.find(item.name:lower(), "tiny crimson whelpling") or
+        string.find(item.name:lower(), "tiny emerald whelpling") or string.find(item.name:lower(), "azure whelpling") or
+        string.find(item.name:lower(), "disgusting oozeling") or string.find(item.name:lower(), "red helper box") or -- Winter's Little Helper
+        string.find(item.name:lower(), "green helper box") or -- Winter Reindeer
+    string.find(item.name:lower(), "snowman kit") or string.find(item.name:lower(), "jingling bell") or -- Winter Reindeer
+        string.find(item.name:lower(), "captured flame") or string.find(item.name:lower(), "truesilver shafted arrow") or -- Peddlefeet
+        string.find(item.name:lower(), "silver shafted arrow") or -- Peddlefeet
+    string.find(item.name:lower(), "blood parrot") or string.find(item.name:lower(), "mini diablo") or -- Collector's Edition
+        string.find(item.name:lower(), "panda cub") or -- Collector's Edition
+    string.find(item.name:lower(), "panda collar") or -- Collector's Edition
+    string.find(item.name:lower(), "zergling leash") or -- Collector's Edition
+    string.find(item.name:lower(), "diablo stone") or -- Collector's Edition
+    string.find(item.name:lower(), "banana charm") or -- Collector's Edition
+    string.find(item.name:lower(), "pet") and string.find(item.name:lower(), "carrier") or
+        -- German pet names (Classic WoW vollständige Liste)
+        string.find(item.name:lower(), "katzenträger") or string.find(item.name:lower(), "katzentransportkorb") or
+        string.find(item.name:lower(), "papageienkäfig") or string.find(item.name:lower(), "schlangenkäfig") or
+        string.find(item.name:lower(), "kaninchenkiste") or string.find(item.name:lower(), "hasenkiste") or
+        string.find(item.name:lower(), "schildkrötenbox") or string.find(item.name:lower(), "schildkrötenkiste") or
+        string.find(item.name:lower(), "eulenpfeife") or string.find(item.name:lower(), "hornuhu") or -- Great Horned Owl
+        string.find(item.name:lower(), "habichtseule") or -- Hawk Owl
+    string.find(item.name:lower(), "sperbereule") or -- Hawk Owl alternative
+    string.find(item.name:lower(), "rattenkäfig") or string.find(item.name:lower(), "präriehundpfeife") or
+        string.find(item.name:lower(), "kakerlake") or string.find(item.name:lower(), "schabe") or
+        string.find(item.name:lower(), "ancona") or string.find(item.name:lower(), "worgwelpe") or
+        string.find(item.name:lower(), "worgträger") or string.find(item.name:lower(), "schwelnetztransporter") or
+        string.find(item.name:lower(), "ferkelhalsband") or -- Piglet's Collar
+    string.find(item.name:lower(), "purpurrote schlange") or -- Crimson Snake
+    string.find(item.name:lower(), "schwarze königsnatter") or -- Black Kingsnake
+    string.find(item.name:lower(), "braune schlange") or -- Brown Snake
+    string.find(item.name:lower(), "waldlaubfroschkiste") or -- Wood Frog Box
+    string.find(item.name:lower(), "baumfroschkiste") or -- Tree Frog Box
+    string.find(item.name:lower(), "feendrachen") or -- Sprite Darter
+    string.find(item.name:lower(), "hühnerei") or -- Chicken Egg
+    string.find(item.name:lower(), "westfall-huhn") or -- Westfall Chicken
+    string.find(item.name:lower(), "haustierbömbling") or -- Pet Bombling
+    string.find(item.name:lower(), "kleine rauchmaschine") or -- Lil' Smoky
+        string.find(item.name:lower(), "lebensechte mechanische kröte") or -- Lifelike Mechanical Toad
+        string.find(item.name:lower(), "mechanisches eichhörnchen") or -- Mechanical Squirrel
+        string.find(item.name:lower(), "mechanisches huhn") or -- Mechanical Chicken
+    string.find(item.name:lower(), "dunkler welpling") or -- Dark Whelpling
+        string.find(item.name:lower(), "winziger purpurroter welpling") or -- Tiny Crimson Whelpling
+        string.find(item.name:lower(), "winziger smaragdgrüner welpling") or -- Tiny Emerald Whelpling
+        string.find(item.name:lower(), "azurblauer welpling") or -- Azure Whelpling
+        string.find(item.name:lower(), "ekelhaftes schleimchen") or -- Disgusting Oozeling
+    string.find(item.name:lower(), "roter helferkasten") or -- Red Helper Box
+    string.find(item.name:lower(), "grüner helferkasten") or -- Green Helper Box
+    string.find(item.name:lower(), "schneemannbausatz") or -- Snowman Kit
+    string.find(item.name:lower(), "schellenglocke") or -- Jingling Bell
+    string.find(item.name:lower(), "eingefangene flamme") or -- Captured Flame
+    string.find(item.name:lower(), "wahrer silberpfeil") or -- Truesilver Shafted Arrow
+    string.find(item.name:lower(), "silberpfeil") or -- Silver Shafted Arrow
+    string.find(item.name:lower(), "blutpapagei") or -- Blood Parrot
+    string.find(item.name:lower(), "mini-diablo") or -- Collector's Edition
+    string.find(item.name:lower(), "pandajunges") or -- Collector's Edition
+    string.find(item.name:lower(), "pandahalsband") or -- Collector's Edition
+    string.find(item.name:lower(), "zergling-leine") or -- Collector's Edition
+    string.find(item.name:lower(), "diablostein") or -- Collector's Edition
+    string.find(item.name:lower(), "bananenanhänger") or -- Collector's Edition
+    string.find(item.name:lower(), "haustierträger") or string.find(item.name:lower(), "haustiertransportbox") or
+        -- More specific German pet names
+        string.find(item.name:lower(), "siamkatze") or string.find(item.name:lower(), "bombaykatze") or
+        string.find(item.name:lower(), "orangefarbene tigerkatze") or
+        string.find(item.name:lower(), "silbergetigerte katze") or string.find(item.name:lower(), "maine coon") or
+        string.find(item.name:lower(), "schneeschuh") or string.find(item.name:lower(), "ara") or -- Macaw parrots
+        string.find(item.name:lower(), "hyazinthara") or string.find(item.name:lower(), "grüner flügelara") or
+        string.find(item.name:lower(), "scharlachara") or string.find(item.name:lower(), "fledermausküken") or
+        string.find(item.name:lower(), "mechanisches huhn") or string.find(item.name:lower(), "winziger wanderdrache") or
+        string.find(item.name:lower(), "drachenfalke") or string.find(item.name:lower(), "sprite") or
+        string.find(item.name:lower(), "welpling") or string.find(item.name:lower(), "raptorküken") or
+        -- Generic German pet terms
+        string.find(item.name:lower(), "träger") and
+        (string.find(item.name:lower(), "katze") or string.find(item.name:lower(), "tier")) or
+        string.find(item.name:lower(), "käfig") and string.find(item.name:lower(), "tier") or
+        string.find(item.name:lower(), "ei") and string.find(item.name:lower(), "haustier")) then
         tier = "A"
-    -- Also check by type/subtype (fallback for items not in name list)
-    elseif baseType == "Miscellaneous" and subType == "Companion Pets" or
-           baseType == "Diverses" and subType == "Haustiere" or
-           baseType == "Verschiedenes" and subType == "Haustiere" or
-           subType == "Companion Pets" or subType == "Haustiere" then
+        -- Also check by type/subtype (fallback for items not in name list)
+    elseif baseType == "Miscellaneous" and subType == "Companion Pets" or baseType == "Diverses" and subType ==
+        "Haustiere" or baseType == "Verschiedenes" and subType == "Haustiere" or subType == "Companion Pets" or subType ==
+        "Haustiere" then
         tier = "A"
-    -- Mounts (Any quality - will be upgraded by rarity system)
-    elseif subType == "Mount" or subType == "Reittier" then
-        tier = "A"  -- Base tier A, Epic mounts will auto-upgrade to S
-    -- Armor
+        -- Mounts - classify by speed (60% = A, 100% = SS)
+        -- Check by subtype OR name pattern (Reins of / Zügel / Horn / Bridle)
+    elseif subType == "Mount" or subType == "Reittier" or
+           (item.name and (
+               string.find(item.name:lower(), "reins of") or
+               string.find(item.name:lower(), "zügel") or
+               string.find(item.name:lower(), "horn of") or
+               string.find(item.name:lower(), "horn des") or
+               string.find(item.name:lower(), "bridle") or
+               string.find(item.name:lower(), "whistle") or
+               string.find(item.name:lower(), "pfeife")
+           )) then
+        if IsEpicMount(item.name) then
+            tier = "SS" -- Epic/Fast mounts (100% speed) = SS Tier
+        else
+            tier = "A" -- Normal mounts (60% speed) = A Tier
+        end
+        -- Armor
     elseif baseType == "Armor" or baseType == "Rüstung" or
-           -- Check by equipment slot (more reliable)
-           (equipSlot ~= "" and equipSlot ~= "INVTYPE_NON_EQUIP_IGNORE" and
-            (equipSlot:find("INVTYPE_") or equipSlot ~= "")) then
+        -- Check by equipment slot (more reliable)
+        (equipSlot ~= "" and equipSlot ~= "INVTYPE_NON_EQUIP_IGNORE" and (equipSlot:find("INVTYPE_") or equipSlot ~= "")) then
         tier = "A"
-    -- Weapons
+        -- Weapons
     elseif baseType == "Weapon" or baseType == "Waffe" then
         tier = "A"
-    -- Containers (Bags, Quivers, Ammo Pouches)
-    elseif baseType == "Container" or baseType == "Behälter" or
-           baseType == "Quiver" or baseType == "Köcher" or
-           subType == "Bag" or subType == "Tasche" or
-           subType == "Soul Bag" or subType == "Seelentasche" or
-           subType == "Herb Bag" or subType == "Kräutertasche" or
-           subType == "Enchanting Bag" or subType == "Verzauberertasche" or
-           subType == "Engineering Bag" or subType == "Ingenieurstasche" or
-           subType == "Mining Bag" or subType == "Bergbautasche" or
-           subType == "Leatherworking Bag" or subType == "Lederertasche" or
-           subType == "Ammo Pouch" or subType == "Munitionsbeutel" then
+        -- Containers (Bags, Quivers, Ammo Pouches)
+    elseif baseType == "Container" or baseType == "Behälter" or baseType == "Quiver" or baseType == "Köcher" or
+        subType == "Bag" or subType == "Tasche" or subType == "Soul Bag" or subType == "Seelentasche" or subType ==
+        "Herb Bag" or subType == "Kräutertasche" or subType == "Enchanting Bag" or subType == "Verzauberertasche" or
+        subType == "Engineering Bag" or subType == "Ingenieurstasche" or subType == "Mining Bag" or subType ==
+        "Bergbautasche" or subType == "Leatherworking Bag" or subType == "Lederertasche" or subType == "Ammo Pouch" or
+        subType == "Munitionsbeutel" then
         tier = "A"
-    -- Projectiles (Arrows, Bullets) - EXCLUDED from main pool (bonus loot only)
-    elseif baseType == "Projectile" or baseType == "Projektil" or
-           subType == "Arrow" or subType == "Pfeil" or
-           subType == "Bullet" or subType == "Geschoss" or
-           subType == "Thrown" or subType == "Wurfwaffe" then
-        tier = "PROJECTILE"  -- Special tier to exclude from main gacha
+        -- Projectiles (Arrows, Bullets) - EXCLUDED from main pool (bonus loot only)
+    elseif baseType == "Projectile" or baseType == "Projektil" or subType == "Arrow" or subType == "Pfeil" or subType ==
+        "Bullet" or subType == "Geschoss" or subType == "Thrown" or subType == "Wurfwaffe" then
+        tier = "PROJECTILE" -- Special tier to exclude from main gacha
 
-    -- C TIER: Everything else (Junk, Trade Goods, Reagents, Misc)
-    -- Trade Goods
-    elseif baseType == "Trade Goods" or baseType == "Handwerkswaren" or
-           baseType == "Tradeskill" then
+        -- C TIER: Everything else (Junk, Trade Goods, Reagents, Misc)
+        -- Trade Goods
+    elseif baseType == "Trade Goods" or baseType == "Handwerkswaren" or baseType == "Tradeskill" then
         tier = "C"
-    -- Reagents
+        -- Reagents
     elseif baseType == "Reagent" or baseType == "Reagenz" then
         tier = "C"
-    -- Recipe/Patterns
-    elseif baseType == "Recipe" or baseType == "Rezept" or
-           subType == "Book" or subType == "Buch" or
-           subType == "Pattern" or subType == "Muster" or
-           subType == "Schematic" or subType == "Bauplan" or
-           subType == "Design" or subType == "Entwurf" or
-           subType == "Formula" or subType == "Formel" or
-           subType == "Plans" or subType == "Pläne" then
+        -- Recipe/Patterns
+    elseif baseType == "Recipe" or baseType == "Rezept" or subType == "Book" or subType == "Buch" or subType ==
+        "Pattern" or subType == "Muster" or subType == "Schematic" or subType == "Bauplan" or subType == "Design" or
+        subType == "Entwurf" or subType == "Formula" or subType == "Formel" or subType == "Plans" or subType == "Pläne" then
         tier = "C"
-    -- Miscellaneous
-    elseif baseType == "Miscellaneous" or baseType == "Diverses" or
-           baseType == "Verschiedenes" then
+        -- Miscellaneous
+    elseif baseType == "Miscellaneous" or baseType == "Diverses" or baseType == "Verschiedenes" then
         tier = "C"
-    -- Junk
-    elseif baseType == "Junk" or baseType == "Plunder" or
-           baseType == "Schrott" or quality == 0 then -- Gray quality items
+        -- Junk
+    elseif baseType == "Junk" or baseType == "Plunder" or baseType == "Schrott" or quality == 0 then -- Gray quality items
         tier = "C"
-    -- Keys
+        -- Keys
     elseif baseType == "Key" or baseType == "Schlüssel" then
         tier = "C"
-    -- Gems
-    elseif baseType == "Gem" or baseType == "Edelstein" or
-           subType == "Simple" or subType == "Einfach" or
-           subType == "Prismatic" or subType == "Prismatisch" then
+        -- Gems
+    elseif baseType == "Gem" or baseType == "Edelstein" or subType == "Simple" or subType == "Einfach" or subType ==
+        "Prismatic" or subType == "Prismatisch" then
         tier = "C"
-    -- Default fallback
+        -- Default fallback
     else
         tier = "C"
     end
 
     -- Apply rarity upgrade for non-equipped items
     -- This can upgrade items based on their quality (Rare/Epic/Legendary)
-    if not isEquipped and quality >= 3 then
+    -- EXCEPTION: Mounts (A/SS) and Pets (A) stay at their assigned tier regardless of quality
+    local isMount = (subType == "Mount" or subType == "Reittier" or
+                    (item.name and (
+                        string.find(item.name:lower(), "reins of") or
+                        string.find(item.name:lower(), "zügel") or
+                        string.find(item.name:lower(), "horn of") or
+                        string.find(item.name:lower(), "horn des") or
+                        string.find(item.name:lower(), "bridle") or
+                        string.find(item.name:lower(), "whistle") or
+                        string.find(item.name:lower(), "pfeife")
+                    )))
+    local isPet = (tier == "A" and (subType == "Companion Pets" or subType == "Haustiere"))
+
+    if not isEquipped and quality >= 3 and not isMount and not isPet then
         local upgrade = RARITY_UPGRADE[quality] or 0
 
         -- Upgrade tier based on rarity
@@ -378,7 +424,7 @@ function Gacha:GetItemTier(item)
         elseif tier == "B" and upgrade >= 1 then
             tier = "A"
         elseif tier == "A" and upgrade >= 2 then
-            tier = "S"  -- Very rare unequipped items can become S tier
+            tier = "S" -- Very rare unequipped items can become S tier
         end
     end
 
@@ -395,7 +441,7 @@ function Gacha:BuildItemPool()
         ["S"] = {},
         ["SS"] = {}
     }
-    self.projectilePool = {}  -- Separate pool for projectiles
+    self.projectilePool = {} -- Separate pool for projectiles
     self.totalItems = 0
 
     -- Scan equipped items (S/SS Tier potential)
@@ -403,7 +449,8 @@ function Gacha:BuildItemPool()
         local slotId = GetInventorySlotInfo(slotInfo.slotId)
         local itemId = GetInventoryItemID("player", slotId)
         if itemId then
-            local name, link, quality, iLevel, reqLevel, itemType, itemSubType, maxStack, equipSlot, texture = GetItemInfo(itemId)
+            local name, link, quality, iLevel, reqLevel, itemType, itemSubType, maxStack, equipSlot, texture =
+                GetItemInfo(itemId)
             if name then
                 local item = {
                     itemId = itemId,
@@ -463,12 +510,15 @@ function Gacha:BuildItemPool()
                 if id then
                     itemId = id
                     itemLink = link
-                    itemInfo = { stackCount = count }
+                    itemInfo = {
+                        stackCount = count
+                    }
                 end
             end
 
             if itemId then
-                local name, link, quality, iLevel, reqLevel, itemType, itemSubType, maxStack, equipSlot, texture = GetItemInfo(itemId)
+                local name, link, quality, iLevel, reqLevel, itemType, itemSubType, maxStack, equipSlot, texture =
+                    GetItemInfo(itemId)
                 if name then
                     local item = {
                         itemId = itemId,
@@ -521,17 +571,15 @@ function Gacha:UpdateTierWeights()
         -- Adjust weight based on pool size
         local weight = baseWeight
         if count == 0 then
-            weight = 0  -- No items = no chance
+            weight = 0 -- No items = no chance
         elseif count <= 3 then
-            weight = baseWeight * 0.3  -- Very few items = lower chance
+            weight = baseWeight * 0.3 -- Very few items = lower chance
         elseif count <= 10 then
-            weight = baseWeight * 0.7  -- Few items = slightly lower chance
+            weight = baseWeight * 0.7 -- Few items = slightly lower chance
         end
 
-        -- Special boost for SS tier if only 1-2 items (make it special!)
-        if tier == "SS" and count > 0 and count <= 2 then
-            weight = 1  -- Slightly higher for ultra rare
-        end
+        -- SS tier should always stay ultra rare (no boost!)
+        -- Removed special boost to keep SS at 0.3% or lower
 
         self.tierWeights[tier] = weight
         self.totalWeight = self.totalWeight + weight
@@ -540,7 +588,9 @@ end
 
 -- Get random tier based on weights
 function Gacha:GetRandomTier()
-    if self.totalWeight == 0 then return "C" end
+    if self.totalWeight == 0 then
+        return "C"
+    end
 
     local random = math.random() * self.totalWeight
     local current = 0
@@ -552,7 +602,7 @@ function Gacha:GetRandomTier()
         end
     end
 
-    return "C"  -- Fallback
+    return "C" -- Fallback
 end
 
 -- Get random item from tier
@@ -560,11 +610,17 @@ function Gacha:GetRandomItemFromTier(tier, excludeList)
     local pool = self.tierPools[tier]
     if not pool or #pool == 0 then
         -- If tier is empty, downgrade to next tier
-        if tier == "SS" then return self:GetRandomItemFromTier("S", excludeList)
-        elseif tier == "S" then return self:GetRandomItemFromTier("A", excludeList)
-        elseif tier == "A" then return self:GetRandomItemFromTier("B", excludeList)
-        elseif tier == "B" then return self:GetRandomItemFromTier("C", excludeList)
-        else return nil end
+        if tier == "SS" then
+            return self:GetRandomItemFromTier("S", excludeList)
+        elseif tier == "S" then
+            return self:GetRandomItemFromTier("A", excludeList)
+        elseif tier == "A" then
+            return self:GetRandomItemFromTier("B", excludeList)
+        elseif tier == "B" then
+            return self:GetRandomItemFromTier("C", excludeList)
+        else
+            return nil
+        end
     end
 
     -- If we have an exclude list, filter the pool
@@ -573,8 +629,8 @@ function Gacha:GetRandomItemFromTier(tier, excludeList)
         for _, item in ipairs(pool) do
             local isExcluded = false
             for _, excluded in pairs(excludeList) do
-                if excluded and item and excluded.itemId == item.itemId and
-                   excluded.bag == item.bag and excluded.slot == item.slot then
+                if excluded and item and excluded.itemId == item.itemId and excluded.bag == item.bag and excluded.slot ==
+                    item.slot then
                     isExcluded = true
                     break
                 end
@@ -616,22 +672,20 @@ function Gacha:Pull10Fast()
     end
 
     print("|cffffcc00Processing x10 pull...|r")
-    print(string.format("|cffccccccStarting counters - Spins: %d/%d, B-Tier: %d/%d|r",
-        self.spinCount, self.pityThreshold, self.bTierPityCount, self.bTierPityThreshold))
+    print(string.format("|cffccccccStarting counters - Spins: %d/%d, B-Tier: %d/%d|r", self.spinCount,
+        self.pityThreshold, self.bTierPityCount, self.bTierPityThreshold))
 
     local results = {
-        matches = {},  -- Store which pulls had matches
-        deletedItems = {},  -- Track items already marked for deletion
-        pulledItems = {}  -- Track ALL items that have been pulled (to prevent duplicates)
+        matches = {}, -- Store which pulls had matches
+        deletedItems = {}, -- Track items already marked for deletion
+        pulledItems = {} -- Track ALL items that have been pulled (to prevent duplicates)
     }
 
     -- Helper function to check if item was already pulled
     local function wasItemAlreadyPulled(item, pulledList)
         for _, pulled in ipairs(pulledList) do
             -- Check if same item (by ID and location)
-            if pulled.itemId == item.itemId and
-               pulled.bag == item.bag and
-               pulled.slot == item.slot then
+            if pulled.itemId == item.itemId and pulled.bag == item.bag and pulled.slot == item.slot then
                 return true
             end
         end
@@ -650,13 +704,13 @@ function Gacha:Pull10Fast()
         -- Check if we've passed the 50-spin threshold (not just equal)
         if nextSpinCount >= self.pityThreshold then
             forcedPityTier = math.random() < 0.5 and "S" or "A"
-            print(string.format("|cffffcc00Pull %d: 50-SPIN PITY ACTIVE! (Spin %d) Forcing %s tier triple!|r",
-                pullNum, nextSpinCount, forcedPityTier))
-        -- Check B-tier pity (only if main pity isn't active)
+            print(string.format("|cffffcc00Pull %d: 50-SPIN PITY ACTIVE! (Spin %d) Forcing %s tier triple!|r", pullNum,
+                nextSpinCount, forcedPityTier))
+            -- Check B-tier pity (only if main pity isn't active)
         elseif nextBTierCount >= self.bTierPityThreshold then
             forcedPityTier = "B"
-            print(string.format("|cff99ccffPull %d: B-TIER PITY! (Count %d) Forcing B tier triple!|r",
-                pullNum, nextBTierCount))
+            print(string.format("|cff99ccffPull %d: B-TIER PITY! (Count %d) Forcing B tier triple!|r", pullNum,
+                nextBTierCount))
         end
 
         -- NOW increment counters (after pity check, so it's consistent with single pulls)
@@ -717,7 +771,13 @@ function Gacha:Pull10Fast()
         -- Find the best tier rolled (SS > S > A > B > C)
         local bestTier = tier1
         local bestItem = pullResult.items[1]
-        local tierOrder = { SS = 5, S = 4, A = 3, B = 2, C = 1 }
+        local tierOrder = {
+            SS = 5,
+            S = 4,
+            A = 3,
+            B = 2,
+            C = 1
+        }
 
         for i = 1, 3 do
             local currentTier = pullResult.tiers[i]
@@ -729,10 +789,10 @@ function Gacha:Pull10Fast()
 
         -- Prepare result data - show the best tier/item from this pull
         results[pullNum] = {
-            tier = bestTier,  -- Show the best tier rolled
-            item = bestItem,  -- Show the item from best tier
+            tier = bestTier, -- Show the best tier rolled
+            item = bestItem, -- Show the item from best tier
             shouldDelete = false,
-            allTiers = string.format("%s-%s-%s", tier1, tier2, tier3)  -- Store all tiers for debug
+            allTiers = string.format("%s-%s-%s", tier1, tier2, tier3) -- Store all tiers for debug
         }
 
         if hasMatch then
@@ -756,8 +816,8 @@ function Gacha:Pull10Fast()
                 if item then
                     local alreadyDeleted = false
                     for _, deleted in pairs(results.deletedItems) do
-                        if deleted and deleted.itemId == item.itemId and
-                           deleted.bag == item.bag and deleted.slot == item.slot then
+                        if deleted and deleted.itemId == item.itemId and deleted.bag == item.bag and deleted.slot ==
+                            item.slot then
                             alreadyDeleted = true
                             break
                         end
@@ -792,10 +852,10 @@ function Gacha:Pull10Fast()
 
             -- Override the result to mark it for deletion
             results[pullNum] = {
-                tier = tier1,  -- All 3 match, so tier1 = tier2 = tier3
+                tier = tier1, -- All 3 match, so tier1 = tier2 = tier3
                 item = victim,
                 shouldDelete = true,
-                deleteCount = deleteCount,  -- Add the delete count
+                deleteCount = deleteCount, -- Add the delete count
                 allTiers = string.format("%s-%s-%s", tier1, tier2, tier3)
             }
 
@@ -806,9 +866,7 @@ function Gacha:Pull10Fast()
                 print(string.format("|cffffd700Pull %d: %s-%s-%s (Best: %s)|r", pullNum, tier1, tier2, tier3, bestTier))
             end
             -- Handle shards for S/SS without match
-            if (tier1 == "S" or tier1 == "SS") or
-               (tier2 == "S" or tier2 == "SS") or
-               (tier3 == "S" or tier3 == "SS") then
+            if (tier1 == "S" or tier1 == "SS") or (tier2 == "S" or tier2 == "SS") or (tier3 == "S" or tier3 == "SS") then
                 self.shards = math.min((self.shards or 0) + 1, self.maxShards)
                 CattosShuffleDB.gachaShards = self.shards
             end
@@ -825,7 +883,7 @@ function Gacha:Pull10Fast()
         if tierPool then
             for _, item in ipairs(tierPool) do
                 if item and item.isDeleted then
-                    item.isDeleted = nil  -- Remove the temporary flag
+                    item.isDeleted = nil -- Remove the temporary flag
                 end
             end
         end
@@ -894,7 +952,7 @@ function Gacha:DoPull()
             local slot = self.frame.slots[i]
             if slot and slot.countDisplay then
                 slot.countDisplay:SetText("")
-                slot.countDisplay:SetPoint("CENTER", slot, "CENTER", 0, 0)  -- Reset position
+                slot.countDisplay:SetPoint("CENTER", slot, "CENTER", 0, 0) -- Reset position
                 slot.deleteCount = nil
             end
         end
@@ -920,7 +978,7 @@ function Gacha:DoPull()
         -- Mark that we should reset main pity after completion
         self.pendingMainPityReset = true
 
-    -- Check for B-Tier pity (every 10 rolls) - only if 50-spin didn't trigger
+        -- Check for B-Tier pity (every 10 rolls) - only if 50-spin didn't trigger
     elseif (self.bTierPityCount + 1) >= self.bTierPityThreshold then
         forcedPityTier = "B"
         print("|cff99ccff>>> 10-ROLL PITY: B TIER TRIPLE GUARANTEED! <<<|r")
@@ -968,9 +1026,9 @@ function Gacha:DoPull()
     end
 
     -- Play multiple sounds for dramatic effect
-    PlaySound(168, "SFX")  -- Chest opening sound
+    PlaySound(168, "SFX") -- Chest opening sound
     C_Timer.After(0.2, function()
-        PlaySound(63, "SFX")  -- Lever pull sound
+        PlaySound(63, "SFX") -- Lever pull sound
     end)
 
     print("|cffffcc00>>> GACHA PULL <<<|r")
@@ -983,12 +1041,12 @@ end
 -- Animate the gacha pull (Slot Machine Style)
 function Gacha:AnimatePull()
     -- Each slot has different spin duration (like real slot machines)
-    local slot1Duration = 3.5   -- First slot stops first
-    local slot2Duration = 5.0   -- Second slot stops later
-    local slot3Duration = 6.5   -- Third slot stops last
+    local slot1Duration = 3.5 -- First slot stops first
+    local slot2Duration = 5.0 -- Second slot stops later
+    local slot3Duration = 6.5 -- Third slot stops last
 
     -- Animation speed
-    local spinSpeed = 0.05  -- Update every 50ms for smoother animation
+    local spinSpeed = 0.05 -- Update every 50ms for smoother animation
 
     -- Initialize all slots as spinning
     for i = 1, 3 do
@@ -1011,9 +1069,13 @@ function Gacha:AnimatePull()
 
                 -- Determine when to stop this slot
                 local stopTime = 0
-                if i == 1 then stopTime = slot1Duration
-                elseif i == 2 then stopTime = slot2Duration
-                elseif i == 3 then stopTime = slot3Duration end
+                if i == 1 then
+                    stopTime = slot1Duration
+                elseif i == 2 then
+                    stopTime = slot2Duration
+                elseif i == 3 then
+                    stopTime = slot3Duration
+                end
 
                 if slot.spinTimer >= stopTime then
                     -- STOP! Show final result with dramatic effect
@@ -1022,12 +1084,10 @@ function Gacha:AnimatePull()
                     slot.displayItem = slot.item
 
                     -- Play slot stop sound
-                    PlaySound(3175, "SFX")  -- Slot machine stop sound
+                    PlaySound(3175, "SFX") -- Slot machine stop sound
 
                     -- Print which slot stopped
-                    print(string.format("|cffffcc00[Slot %d]|r stopped at |c%s%s Tier|r",
-                        i,
-                        TIER_INFO[slot.tier].hex,
+                    print(string.format("|cffffcc00[Slot %d]|r stopped at |c%s%s Tier|r", i, TIER_INFO[slot.tier].hex,
                         slot.tier))
 
                     -- Add a brief flash effect when stopping
@@ -1049,22 +1109,22 @@ function Gacha:AnimatePull()
                     -- Slow down as we approach the stop time (deceleration)
                     local changeChance = 1.0
                     if progress > 0.5 then
-                        changeChance = 0.8  -- Start slowing
+                        changeChance = 0.8 -- Start slowing
                     end
                     if progress > 0.65 then
-                        changeChance = 0.6  -- Slower
+                        changeChance = 0.6 -- Slower
                     end
                     if progress > 0.75 then
-                        changeChance = 0.4  -- Much slower
+                        changeChance = 0.4 -- Much slower
                     end
                     if progress > 0.85 then
-                        changeChance = 0.25  -- Very slow
+                        changeChance = 0.25 -- Very slow
                     end
                     if progress > 0.92 then
-                        changeChance = 0.15  -- Crawling
+                        changeChance = 0.15 -- Crawling
                     end
                     if progress > 0.96 then
-                        changeChance = 0.08  -- Almost stopped
+                        changeChance = 0.08 -- Almost stopped
                     end
 
                     if math.random() < changeChance then
@@ -1146,11 +1206,7 @@ function Gacha:OnPullComplete()
         local item = slot.item
 
         if item then
-            print(string.format("  [%d] |c%s%s|r: %s",
-                i,
-                tierInfo.hex,
-                tierInfo.name,
-                item.link or item.name))
+            print(string.format("  [%d] |c%s%s|r: %s", i, tierInfo.hex, tierInfo.name, item.link or item.name))
         end
     end
     print("-------------------------")
@@ -1193,7 +1249,9 @@ function Gacha:OnPullComplete()
             self.shards = math.min(self.shards + 1, self.maxShards)
 
             -- Save shards to DB
-            if not CattosShuffleDB then CattosShuffleDB = {} end
+            if not CattosShuffleDB then
+                CattosShuffleDB = {}
+            end
             CattosShuffleDB.gachaShards = self.shards
 
             print(string.format("|cffffcc00You earned a Pity Shard! (%d/%d)|r", self.shards, self.maxShards))
@@ -1213,7 +1271,7 @@ function Gacha:OnPullComplete()
             print("|cff00ff00No match - items are safe!|r")
         end
 
-        PlaySound(3332, "SFX")  -- Quest complete sound
+        PlaySound(3332, "SFX") -- Quest complete sound
     end
 
     -- Check for BONUS ROLL (projectiles/throwables)
@@ -1231,9 +1289,9 @@ function Gacha:ShowBonusRollWindow(item)
     if not self.bonusRollFrame then
         local frame = CreateFrame("Frame", "CattosGachaBonusRoll", UIParent, "BackdropTemplate")
         frame:SetSize(350, 250)
-        frame:SetPoint("CENTER", 0, 150)  -- Slightly higher
-        frame:SetFrameStrata("FULLSCREEN_DIALOG")  -- Highest strata
-        frame:SetFrameLevel(200)  -- Very high frame level to be above x10 window
+        frame:SetPoint("CENTER", 0, 150) -- Slightly higher
+        frame:SetFrameStrata("FULLSCREEN_DIALOG") -- Highest strata
+        frame:SetFrameLevel(200) -- Very high frame level to be above x10 window
         frame:SetMovable(true)
         frame:EnableMouse(true)
         frame:RegisterForDrag("LeftButton")
@@ -1242,19 +1300,24 @@ function Gacha:ShowBonusRollWindow(item)
 
         -- Backdrop
         frame:SetBackdrop({
-            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",  -- Solid black texture
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground", -- Solid black texture
             edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
             tile = false,
             edgeSize = 32,
-            insets = { left = 11, right = 12, top = 12, bottom = 11 }
+            insets = {
+                left = 11,
+                right = 12,
+                top = 12,
+                bottom = 11
+            }
         })
-        frame:SetBackdropColor(0, 0, 0, 1)  -- Fully opaque black background
-        frame:SetBackdropBorderColor(1, 0, 0, 1)  -- Red border for danger
+        frame:SetBackdropColor(0, 0, 0, 1) -- Fully opaque black background
+        frame:SetBackdropBorderColor(1, 0, 0, 1) -- Red border for danger
 
         -- Add an extra solid background texture to ensure no transparency
         local bg = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
         bg:SetAllPoints(frame)
-        bg:SetColorTexture(0, 0, 0, 1)  -- Solid black
+        bg:SetColorTexture(0, 0, 0, 1) -- Solid black
         frame.solidBg = bg
 
         -- Title
@@ -1279,7 +1342,7 @@ function Gacha:ShowBonusRollWindow(item)
         frame.percentDisplay = frame:CreateFontString(nil, "OVERLAY", "NumberFontNormalHuge")
         frame.percentDisplay:SetPoint("TOP", frame.stackInfo, "BOTTOM", 0, -15)
         frame.percentDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")
-        frame.percentDisplay:SetTextColor(1, 1, 0)  -- Yellow
+        frame.percentDisplay:SetTextColor(1, 1, 0) -- Yellow
 
         -- Result text
         frame.resultText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -1289,7 +1352,7 @@ function Gacha:ShowBonusRollWindow(item)
         -- Close button (appears after animation)
         frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
         frame.closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
-        frame.closeButton:Hide()  -- Hidden during animation
+        frame.closeButton:Hide() -- Hidden during animation
 
         self.bonusRollFrame = frame
     end
@@ -1297,8 +1360,8 @@ function Gacha:ShowBonusRollWindow(item)
     local frame = self.bonusRollFrame
 
     -- Force non-transparent background every time we show the window
-    frame:SetBackdropColor(0, 0, 0, 1)  -- Fully opaque black
-    frame:SetBackdropBorderColor(1, 0, 0, 1)  -- Red border
+    frame:SetBackdropColor(0, 0, 0, 1) -- Fully opaque black
+    frame:SetBackdropBorderColor(1, 0, 0, 1) -- Red border
 
     -- Ensure solid background is visible
     if frame.solidBg then
@@ -1333,7 +1396,9 @@ end
 -- Animate the percentage roll for bonus deletion
 function Gacha:AnimateBonusRollPercentage(item)
     local frame = self.bonusRollFrame
-    if not frame then return end
+    if not frame then
+        return
+    end
 
     -- Determine final percentage (1-100%)
     local finalPercent = math.random(1, 100)
@@ -1341,7 +1406,7 @@ function Gacha:AnimateBonusRollPercentage(item)
     -- Animation variables
     local currentPercent = 0
     local animationTime = 0
-    local animationDuration = 3  -- 3 seconds total
+    local animationDuration = 3 -- 3 seconds total
     local tickSpeed = 0.03
     local nextSound = 0
     local soundInterval = 0.1
@@ -1374,13 +1439,13 @@ function Gacha:AnimateBonusRollPercentage(item)
         end
 
         -- Update display with color based on percentage
-        local r, g, b = 0, 1, 0  -- Green
+        local r, g, b = 0, 1, 0 -- Green
         if currentPercent >= 75 then
-            r, g, b = 1, 0, 0  -- Red for high percentage
+            r, g, b = 1, 0, 0 -- Red for high percentage
         elseif currentPercent >= 50 then
-            r, g, b = 1, 0.5, 0  -- Orange for medium
+            r, g, b = 1, 0.5, 0 -- Orange for medium
         elseif currentPercent >= 25 then
-            r, g, b = 1, 1, 0  -- Yellow for low-medium
+            r, g, b = 1, 1, 0 -- Yellow for low-medium
         end
 
         frame.percentDisplay:SetTextColor(r, g, b)
@@ -1390,8 +1455,8 @@ function Gacha:AnimateBonusRollPercentage(item)
 
         -- Play tick sound
         if animationTime >= nextSound and progress < 0.9 then
-            PlaySound(1210, "SFX")  -- Money sound
-            nextSound = animationTime + soundInterval * (1 + progress * 2)  -- Slow down sounds
+            PlaySound(1210, "SFX") -- Money sound
+            nextSound = animationTime + soundInterval * (1 + progress * 2) -- Slow down sounds
         end
 
         -- Check if animation is complete
@@ -1409,25 +1474,25 @@ function Gacha:AnimateBonusRollPercentage(item)
             end
 
             -- Show result with both percentage and amount
-            local resultColor = "|cffff0000"  -- Red
+            local resultColor = "|cffff0000" -- Red
             if finalPercent <= 25 then
-                resultColor = "|cff00ff00"  -- Green for low
+                resultColor = "|cff00ff00" -- Green for low
             elseif finalPercent <= 50 then
-                resultColor = "|cffffcc00"  -- Yellow for medium
+                resultColor = "|cffffcc00" -- Yellow for medium
             end
 
             -- Show only the final amount
             frame.percentDisplay:SetText(tostring(deleteAmount))
-            frame.resultText:SetText(string.format("%sDELETING: %d of %d|r",
-                resultColor, deleteAmount, item.stackCount or 1))
+            frame.resultText:SetText(string.format("%sDELETING: %d of %d|r", resultColor, deleteAmount,
+                item.stackCount or 1))
 
             -- Play final sound based on percentage
             if finalPercent >= 75 then
-                PlaySound(888, "SFX")  -- Warning sound for high deletion
+                PlaySound(888, "SFX") -- Warning sound for high deletion
             elseif finalPercent >= 50 then
-                PlaySound(3334, "SFX")  -- Item destroy sound
+                PlaySound(3334, "SFX") -- Item destroy sound
             else
-                PlaySound(3332, "SFX")  -- Quest complete sound for low deletion
+                PlaySound(3332, "SFX") -- Quest complete sound for low deletion
             end
 
             -- Show close button
@@ -1461,7 +1526,7 @@ function Gacha:PerformProjectileDeletion(item, deleteAmount)
     print("|cffff0000========================================|r")
 
     -- Play warning sound
-    PlaySound(3334, "SFX")  -- Item destroy sound
+    PlaySound(3334, "SFX") -- Item destroy sound
 end
 
 -- Check and handle bonus roll for projectiles
@@ -1490,7 +1555,7 @@ function Gacha:CheckBonusRoll()
 
         if bonusItem then
             -- Play special sound for bonus
-            PlaySound(888, "SFX")  -- Warning sound
+            PlaySound(888, "SFX") -- Warning sound
 
             -- Show the bonus roll window with animation
             self:ShowBonusRollWindow(bonusItem)
@@ -1523,8 +1588,7 @@ function Gacha:AutoDeleteItem(item)
     -- Create input dialog
     StaticPopupDialogs["CATTOS_GACHA_DELETE_CONFIRM"] = {
         text = string.format("Type |cffff0000Delete|r to confirm:\n\n%s%s\n\n|cffff0000This cannot be undone!|r",
-            deleteCount > 1 and string.format("%dx ", deleteCount) or "",
-            item.link or item.name),
+            deleteCount > 1 and string.format("%dx ", deleteCount) or "", item.link or item.name),
         button1 = "Confirm",
         button2 = "Cancel",
         hasEditBox = true,
@@ -1562,14 +1626,16 @@ function Gacha:AutoDeleteItem(item)
         timeout = 15,
         whileDead = false,
         hideOnEscape = true,
-        preferredIndex = 3,
+        preferredIndex = 3
     }
     StaticPopup_Show("CATTOS_GACHA_DELETE_CONFIRM")
 end
 
 -- Perform the actual deletion
 function Gacha:PerformDeletion()
-    if not self.pendingDelete then return end
+    if not self.pendingDelete then
+        return
+    end
 
     local item = self.pendingDelete.item
     local deleteCount = self.pendingDelete.count
@@ -1593,7 +1659,7 @@ function Gacha:PerformDeletion()
                 if CursorHasItem() then
                     DeleteCursorItem()
                     print(string.format("|cffff0000DELETED: %d x %s|r", deleteCount, item.link or item.name))
-                    PlaySound(3334, "SFX")  -- Item destroy sound
+                    PlaySound(3334, "SFX") -- Item destroy sound
                 end
             end)
         else
@@ -1607,7 +1673,7 @@ function Gacha:PerformDeletion()
             if CursorHasItem() then
                 DeleteCursorItem()
                 print(string.format("|cffff0000DELETED: %s (entire stack)|r", item.link or item.name))
-                PlaySound(3334, "SFX")  -- Item destroy sound
+                PlaySound(3334, "SFX") -- Item destroy sound
             else
                 print("|cffff0000Failed to pick up item for deletion!|r")
             end
@@ -1620,7 +1686,7 @@ function Gacha:PerformDeletion()
         if CursorHasItem() then
             DeleteCursorItem()
             print(string.format("|cffff0000DELETED: %s (Equipped)|r", item.link or item.name))
-            PlaySound(3334, "SFX")  -- Item destroy sound
+            PlaySound(3334, "SFX") -- Item destroy sound
         else
             print("|cffff0000Failed to pick up equipped item!|r")
         end
@@ -1636,10 +1702,9 @@ function Gacha:DeleteItem(item)
 
     -- ALWAYS show confirmation dialog - no auto-delete
     StaticPopupDialogs["CATTOS_GACHA_DELETE"] = {
-        text = string.format("GACHA MATCH! Delete this item?\n\n%s\n|c%s[%s Tier]|r\n\n|cffff0000This cannot be undone!|r",
-            item.link or item.name,
-            TIER_INFO[item.tier].hex,
-            TIER_INFO[item.tier].name),
+        text = string.format(
+            "GACHA MATCH! Delete this item?\n\n%s\n|c%s[%s Tier]|r\n\n|cffff0000This cannot be undone!|r",
+            item.link or item.name, TIER_INFO[item.tier].hex, TIER_INFO[item.tier].name),
         button1 = "DELETE",
         button2 = "SAVE",
         OnAccept = function()
@@ -1648,10 +1713,10 @@ function Gacha:DeleteItem(item)
         OnCancel = function()
             print("|cff00ff00Item saved! You chose mercy.|r")
         end,
-        timeout = 20,  -- More time to decide
+        timeout = 20, -- More time to decide
         whileDead = false,
-        hideOnEscape = true,  -- Allow ESC to save item
-        preferredIndex = 3,
+        hideOnEscape = true, -- Allow ESC to save item
+        preferredIndex = 3
     }
     StaticPopup_Show("CATTOS_GACHA_DELETE")
 end
@@ -1717,7 +1782,9 @@ end
 -- Get display info for UI
 function Gacha:GetSlotDisplay(slotNum)
     local slot = self.slots[slotNum]
-    if not slot then return nil end
+    if not slot then
+        return nil
+    end
 
     -- During spinning, show displayTier/displayItem
     local tier = slot.displayTier or slot.tier or "C"
@@ -1729,31 +1796,33 @@ function Gacha:GetSlotDisplay(slotNum)
         tierInfo = tierInfo,
         item = item,
         spinning = slot.isSpinning or false,
-        stopped = not slot.isSpinning and self.isSpinning  -- Stopped while others still spin
+        stopped = not slot.isSpinning and self.isSpinning -- Stopped while others still spin
     }
 end
 
 -- Animate victim selection for triple match
 function Gacha:AnimateVictimSelection()
-    if not self.frame or not self.frame.slots then return end
+    if not self.frame or not self.frame.slots then
+        return
+    end
 
     -- Animation settings (faster version)
-    local highlightSpeed = 0.08  -- Faster switching
-    local totalDuration = 1.5    -- Shorter total time
-    local slowdownStart = 0.8    -- Start slowing earlier
+    local highlightSpeed = 0.08 -- Faster switching
+    local totalDuration = 1.5 -- Shorter total time
+    local slowdownStart = 0.8 -- Start slowing earlier
 
     local currentSlot = 1
     local elapsedTime = 0
     local nextSwitch = highlightSpeed
-    local victimSlot = math.random(1, 3)  -- Pre-determine the victim
+    local victimSlot = math.random(1, 3) -- Pre-determine the victim
     local switchCount = 0
-    local maxSwitches = math.random(8, 12)  -- Fewer switches for faster completion
+    local maxSwitches = math.random(8, 12) -- Fewer switches for faster completion
 
     -- Clear all highlights first
     for i = 1, 3 do
         if self.frame.slots[i] then
             self.frame.slots[i]:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
-            self.frame.slots[i]:SetBackdropColor(0.08, 0.08, 0.15, 0.95)  -- Reset to normal dark background
+            self.frame.slots[i]:SetBackdropColor(0.08, 0.08, 0.15, 0.95) -- Reset to normal dark background
 
             -- Reset tier banner if exists
             if self.frame.slots[i].tierBanner then
@@ -1767,10 +1836,10 @@ function Gacha:AnimateVictimSelection()
     end
 
     -- Play sound for dramatic effect
-    PlaySound(3337, "SFX")  -- Roulette tick sound
+    PlaySound(3337, "SFX") -- Roulette tick sound
 
     -- Start the animation timer
-    self.selectionTimer = C_Timer.NewTicker(0.05, function(timer)  -- Back to smooth animation
+    self.selectionTimer = C_Timer.NewTicker(0.05, function(timer) -- Back to smooth animation
         elapsedTime = elapsedTime + 0.05
 
         -- Check if it's time to switch highlight
@@ -1782,31 +1851,31 @@ function Gacha:AnimateVictimSelection()
 
             -- Update visuals
             if self.frame.slots[previousSlot] then
-                self.frame.slots[previousSlot]:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)  -- Normal
-                self.frame.slots[previousSlot]:SetBackdropColor(0.08, 0.08, 0.15, 0.95)  -- Reset background
+                self.frame.slots[previousSlot]:SetBackdropBorderColor(0.5, 0.5, 0.5, 1) -- Normal
+                self.frame.slots[previousSlot]:SetBackdropColor(0.08, 0.08, 0.15, 0.95) -- Reset background
             end
 
             if self.frame.slots[currentSlot] then
                 -- Intense golden glow
-                self.frame.slots[currentSlot]:SetBackdropBorderColor(1, 0.9, 0, 1)  -- Bright gold border
-                self.frame.slots[currentSlot]:SetBackdropColor(0.4, 0.3, 0, 0.6)  -- Golden background tint
+                self.frame.slots[currentSlot]:SetBackdropBorderColor(1, 0.9, 0, 1) -- Bright gold border
+                self.frame.slots[currentSlot]:SetBackdropColor(0.4, 0.3, 0, 0.6) -- Golden background tint
 
                 -- Keep tier banner original color - don't change it
-                PlaySound(862, "SFX")  -- Tick sound for each switch
+                PlaySound(862, "SFX") -- Tick sound for each switch
             end
 
             -- Calculate next switch time (slowing down effect)
             if elapsedTime > slowdownStart then
                 -- Exponentially slow down
                 local progress = (elapsedTime - slowdownStart) / (totalDuration - slowdownStart)
-                highlightSpeed = 0.08 + (progress * progress * 0.4)  -- Gets slower but not as much
+                highlightSpeed = 0.08 + (progress * progress * 0.4) -- Gets slower but not as much
             end
 
             -- Check if we should stop
             if switchCount >= maxSwitches and currentSlot == victimSlot then
                 -- STOP! Final selection
                 timer:Cancel()
-                self.selectionTimer = nil  -- Clear the timer reference!
+                self.selectionTimer = nil -- Clear the timer reference!
 
                 -- Flash the final selection
                 self:FlashVictimSlot(victimSlot)
@@ -1834,9 +1903,9 @@ function Gacha:AnimateVictimSelection()
                                 end
 
                                 slot.countDisplay:SetText("1")
-                                slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")  -- Same size as animated numbers
-                                slot.countDisplay:SetTextColor(1, 0.2, 0.2)  -- Dark red
-                                slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0)  -- Centered on icon
+                                slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE") -- Same size as animated numbers
+                                slot.countDisplay:SetTextColor(1, 0.2, 0.2) -- Dark red
+                                slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0) -- Centered on icon
                                 slot.deleteCount = 1
                             end
 
@@ -1859,7 +1928,9 @@ end
 
 -- Flash the final victim slot dramatically
 function Gacha:FlashVictimSlot(slotNum)
-    if not self.frame or not self.frame.slots[slotNum] then return end
+    if not self.frame or not self.frame.slots[slotNum] then
+        return
+    end
 
     local slot = self.frame.slots[slotNum]
     local tier = self.slots[slotNum] and self.slots[slotNum].tier
@@ -1874,38 +1945,40 @@ function Gacha:FlashVictimSlot(slotNum)
 
         -- Play dramatic sound
         if tier == "SS" then
-            PlaySound(31578, "SFX")  -- Epic loot sound
+            PlaySound(31578, "SFX") -- Epic loot sound
         elseif tier == "S" then
-            PlaySound(888, "SFX")  -- PVP warning sound
+            PlaySound(888, "SFX") -- PVP warning sound
         else
-            PlaySound(3332, "SFX")  -- Quest complete sound
+            PlaySound(3332, "SFX") -- Quest complete sound
         end
     else
         -- For non-epic tiers, just mark with a simple red border
-        slot:SetBackdropBorderColor(1, 0, 0, 1)  -- Red border for deletion
-        slot:SetBackdropColor(0.3, 0, 0, 1)      -- Slight red tint
+        slot:SetBackdropBorderColor(1, 0, 0, 1) -- Red border for deletion
+        slot:SetBackdropColor(0.3, 0, 0, 1) -- Slight red tint
 
         -- Play warning sound
-        PlaySound(888, "SFX")  -- PVP warning sound
+        PlaySound(888, "SFX") -- PVP warning sound
     end
 end
 
 -- Animate stack count selection
 function Gacha:AnimateStackCount(slotNum, item)
-    if not self.frame or not self.frame.slots[slotNum] then return end
+    if not self.frame or not self.frame.slots[slotNum] then
+        return
+    end
 
     local slot = self.frame.slots[slotNum]
     local maxCount = item.stackCount
-    local finalCount = math.random(1, maxCount)  -- Pre-determine the final count
+    local finalCount = math.random(1, maxCount) -- Pre-determine the final count
 
     -- Create count display on higher layer (on iconButton if it exists, otherwise on slot)
     local parent = slot.iconButton or slot
     if not slot.countDisplay then
         slot.countDisplay = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-        slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0)  -- Center on the icon during animation
-        slot.countDisplay:SetTextColor(1, 1, 0)  -- Yellow
-        slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")  -- Bigger font
-        slot.countDisplay:SetDrawLayer("OVERLAY", 7)  -- Highest sublayer
+        slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0) -- Center on the icon during animation
+        slot.countDisplay:SetTextColor(1, 1, 0) -- Yellow
+        slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE") -- Bigger font
+        slot.countDisplay:SetDrawLayer("OVERLAY", 7) -- Highest sublayer
     end
 
     -- Make slot darker for better contrast
@@ -1913,8 +1986,8 @@ function Gacha:AnimateStackCount(slotNum, item)
 
     -- Animation settings
     local animationTime = 0
-    local animationDuration = 2  -- 2 seconds total
-    local switchSpeed = 0.05  -- Start fast
+    local animationDuration = 2 -- 2 seconds total
+    local switchSpeed = 0.05 -- Start fast
     local nextSwitch = 0
     local currentCount = 1
     local direction = 1
@@ -1945,15 +2018,15 @@ function Gacha:AnimateStackCount(slotNum, item)
             if animationTime < animationDuration - 0.5 then
                 -- Still rolling - flash between yellow and white
                 if math.random() > 0.5 then
-                    slot.countDisplay:SetTextColor(1, 1, 0)  -- Yellow
+                    slot.countDisplay:SetTextColor(1, 1, 0) -- Yellow
                 else
-                    slot.countDisplay:SetTextColor(1, 1, 1)  -- White
+                    slot.countDisplay:SetTextColor(1, 1, 1) -- White
                 end
             end
 
             -- Play tick sound
             if animationTime < animationDuration - 0.5 then
-                PlaySound(1210, "SFX")  -- Money sound for each number change
+                PlaySound(1210, "SFX") -- Money sound for each number change
             end
 
             -- Calculate next switch (slowing down)
@@ -1969,11 +2042,11 @@ function Gacha:AnimateStackCount(slotNum, item)
 
             -- Set final count with dramatic effect
             slot.countDisplay:SetText(tostring(finalCount))
-            slot.countDisplay:SetTextColor(1, 0, 0)  -- Red for danger
-            slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")  -- Keep consistent size
+            slot.countDisplay:SetTextColor(1, 0, 0) -- Red for danger
+            slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE") -- Keep consistent size
 
             -- Play final sound
-            PlaySound(888, "SFX")  -- Warning sound
+            PlaySound(888, "SFX") -- Warning sound
 
             print(string.format("|cffff0000FINAL COUNT: %d of %d|r", finalCount, maxCount))
 
@@ -1982,9 +2055,9 @@ function Gacha:AnimateStackCount(slotNum, item)
                 -- Keep the count visible with same size
                 if slot.countDisplay then
                     local parent = slot.iconButton or slot
-                    slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE")  -- Keep same size as during animation
-                    slot.countDisplay:SetTextColor(1, 0.2, 0.2)  -- Dark red
-                    slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0)  -- Keep centered on icon
+                    slot.countDisplay:SetFont("Fonts\\FRIZQT__.TTF", 48, "THICKOUTLINE") -- Keep same size as during animation
+                    slot.countDisplay:SetTextColor(1, 0.2, 0.2) -- Dark red
+                    slot.countDisplay:SetPoint("CENTER", parent, "CENTER", 0, 0) -- Keep centered on icon
                 end
 
                 -- Reset slot background color
@@ -2009,38 +2082,34 @@ end
 function Gacha:ShowManualDeleteInstructions(item, count)
     -- Create the instruction dialog
     StaticPopupDialogs["CATTOS_GACHA_MANUAL_DELETE"] = {
-        text = string.format("|cffffcc00MANUAL DELETION REQUIRED|r\n\n" ..
-            "Please delete the following:\n\n" ..
-            "%s%s\n\n" ..
-            "|cffff0000Instructions:|r\n" ..
-            "1. Open your bags\n" ..
-            "2. Find the item\n" ..
-            "3. Drag it out of your bag to destroy\n\n" ..
-            "%s",
-            count > 1 and string.format("|cffff8800%dx|r ", count) or "",
-            item.link or item.name,
+        text = string.format("|cffffcc00MANUAL DELETION REQUIRED|r\n\n" .. "Please delete the following:\n\n" ..
+                                 "%s%s\n\n" .. "|cffff0000Instructions:|r\n" .. "1. Open your bags\n" ..
+                                 "2. Find the item\n" .. "3. Drag it out of your bag to destroy\n\n" .. "%s",
+            count > 1 and string.format("|cffff8800%dx|r ", count) or "", item.link or item.name,
             count > 1 and item.stackCount > 1 and
                 string.format("|cffccccccNote: Split stack to %d first (Shift + Right-Click)|r\n", count) or ""),
         button1 = "I deleted it",
         button2 = "Cancel",
         OnAccept = function()
             print("|cff00ff00Thank you for deleting the item!|r")
-            PlaySound(3332, "SFX")  -- Quest complete
+            PlaySound(3332, "SFX") -- Quest complete
         end,
         OnCancel = function()
             print("|cffffcc00Remember: You lost the Gacha! Please delete the item manually.|r")
         end,
         timeout = 0,
         whileDead = false,
-        hideOnEscape = true,  -- Allow ESC to close the dialog
-        preferredIndex = 3,
+        hideOnEscape = true, -- Allow ESC to close the dialog
+        preferredIndex = 3
     }
     StaticPopup_Show("CATTOS_GACHA_MANUAL_DELETE")
 end
 
 -- Flash effect when slot stops
 function Gacha:FlashSlot(slotNum)
-    if not self.UpdateUI then return end
+    if not self.UpdateUI then
+        return
+    end
 
     -- Get the tier for special effects
     local tier = self.slots[slotNum] and self.slots[slotNum].tier
@@ -2062,10 +2131,10 @@ function Gacha:FlashSlot(slotNum)
 
                 if flashCount % 2 == 0 then
                     -- Flash on
-                    slot:SetBackdropBorderColor(1, 1, 0, 1)  -- Yellow flash
+                    slot:SetBackdropBorderColor(1, 1, 0, 1) -- Yellow flash
                 else
                     -- Flash off
-                    slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)  -- Normal
+                    slot:SetBackdropBorderColor(0.5, 0.5, 0.5, 1) -- Normal
                 end
             end
 
@@ -2078,7 +2147,9 @@ end
 
 -- Stop single slot animation and clean up
 function Gacha:StopSingleSlotAnimation(slot)
-    if not slot then return end
+    if not slot then
+        return
+    end
 
     -- Cancel any running animation
     if slot.animTicker then
@@ -2140,9 +2211,9 @@ function Gacha:CreateShardPulseAnimation(slot, tier)
     end
 
     -- Set color based on tier
-    local r, g, b = 1, 0.84, 0  -- Gold for S
+    local r, g, b = 1, 0.84, 0 -- Gold for S
     if tier == "SS" then
-        r, g, b = 1, 0.5, 0.2  -- Legendary orange for SS
+        r, g, b = 1, 0.5, 0.2 -- Legendary orange for SS
     end
 
     slot.shardPulse:SetVertexColor(r, g, b, 0.3)
@@ -2150,7 +2221,7 @@ function Gacha:CreateShardPulseAnimation(slot, tier)
     -- Create gentle pulsing effect
     local pulseAlpha = 0.3
     local pulseDirection = 1
-    local pulseSpeed = 0.02  -- Slightly faster for more noticeable pulse
+    local pulseSpeed = 0.02 -- Slightly faster for more noticeable pulse
 
     -- Store the ticker so we can stop it later
     if slot.shardPulseTicker then
@@ -2160,10 +2231,10 @@ function Gacha:CreateShardPulseAnimation(slot, tier)
     slot.shardPulseTicker = C_Timer.NewTicker(0.03, function()
         pulseAlpha = pulseAlpha + (pulseDirection * pulseSpeed)
 
-        if pulseAlpha >= 0.7 then  -- Brighter max
+        if pulseAlpha >= 0.7 then -- Brighter max
             pulseAlpha = 0.7
             pulseDirection = -1
-        elseif pulseAlpha <= 0.15 then  -- Dimmer min for more contrast
+        elseif pulseAlpha <= 0.15 then -- Dimmer min for more contrast
             pulseAlpha = 0.15
             pulseDirection = 1
         end
@@ -2202,7 +2273,7 @@ function Gacha:CreateSingleSlotEpicAnimation(slot, tier)
         -- Background glow texture
         slot.glowBg = slot.glowFrame:CreateTexture(nil, "BACKGROUND")
         slot.glowBg:SetPoint("CENTER", slot, "CENTER", 0, 0)
-        slot.glowBg:SetSize(130 * 1.5, 160 * 1.5)  -- Adjusted for single slot size
+        slot.glowBg:SetSize(130 * 1.5, 160 * 1.5) -- Adjusted for single slot size
         slot.glowBg:SetTexture("Interface\\Cooldown\\star4")
         slot.glowBg:SetBlendMode("ADD")
 
@@ -2214,11 +2285,11 @@ function Gacha:CreateSingleSlotEpicAnimation(slot, tier)
     end
 
     -- Set colors based on tier
-    local r, g, b = 1, 0.84, 0  -- Gold for S
+    local r, g, b = 1, 0.84, 0 -- Gold for S
     if tier == "SS" then
-        r, g, b = 1, 0.5, 0.2  -- Legendary orange-red for SS
+        r, g, b = 1, 0.5, 0.2 -- Legendary orange-red for SS
     elseif tier == "A" then
-        r, g, b = 0.6, 0.2, 0.8  -- Purple for A
+        r, g, b = 0.6, 0.2, 0.8 -- Purple for A
     end
 
     -- Initial flash
@@ -2227,11 +2298,11 @@ function Gacha:CreateSingleSlotEpicAnimation(slot, tier)
 
     -- Play sound based on tier
     if tier == "SS" then
-        PlaySound(31578, "SFX")  -- Epic loot sound
+        PlaySound(31578, "SFX") -- Epic loot sound
     elseif tier == "S" then
-        PlaySound(31579, "SFX")  -- Rare loot sound
+        PlaySound(31579, "SFX") -- Rare loot sound
     elseif tier == "A" then
-        PlaySound(124, "SFX")  -- Good item sound
+        PlaySound(124, "SFX") -- Good item sound
     end
 
     -- Store in active animations for cleanup
@@ -2277,12 +2348,8 @@ function Gacha:CreateSingleSlotEpicAnimation(slot, tier)
         local borderHighlight = math.sin(progress * math.pi * 2)
 
         if borderHighlight > 0 then
-            slot:SetBackdropBorderColor(
-                r + (1 - r) * borderHighlight * 0.5,
-                g + (1 - g) * borderHighlight * 0.5,
-                b + (1 - b) * borderHighlight * 0.5,
-                1
-            )
+            slot:SetBackdropBorderColor(r + (1 - r) * borderHighlight * 0.5, g + (1 - g) * borderHighlight * 0.5,
+                b + (1 - b) * borderHighlight * 0.5, 1)
         else
             -- Keep the base glow color
             slot:SetBackdropBorderColor(r, g, b, 1)
@@ -2297,8 +2364,8 @@ end
 -- Redeem shards to switch to shuffle mode
 function Gacha:RedeemShards()
     if self.shards < self.maxShards then
-        print(string.format("|cffff0000Need %d more shards! (%d/%d)|r",
-            self.maxShards - self.shards, self.shards, self.maxShards))
+        print(string.format("|cffff0000Need %d more shards! (%d/%d)|r", self.maxShards - self.shards, self.shards,
+            self.maxShards))
         return false
     end
 
@@ -2313,7 +2380,7 @@ function Gacha:RedeemShards()
 
     -- Switch to Shuffle mode
     print("|cff00ff00Shards redeemed! Switching to Shuffle mode!|r")
-    PlaySound(3175, "SFX")  -- Success sound
+    PlaySound(3175, "SFX") -- Success sound
 
     -- Open Shuffle UI
     if CattosShuffle and CattosShuffle.frame then
@@ -2358,8 +2425,8 @@ function Gacha:Initialize()
 
     -- Register combat events
     local combatFrame = CreateFrame("Frame")
-    combatFrame:RegisterEvent("PLAYER_REGEN_DISABLED")  -- Entering combat
-    combatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")   -- Leaving combat
+    combatFrame:RegisterEvent("PLAYER_REGEN_DISABLED") -- Entering combat
+    combatFrame:RegisterEvent("PLAYER_REGEN_ENABLED") -- Leaving combat
 
     combatFrame:SetScript("OnEvent", function(self, event)
         if event == "PLAYER_REGEN_DISABLED" then
@@ -2414,7 +2481,7 @@ function Gacha:Initialize()
 
             if shouldReopen and Gacha.frame then
                 Gacha.frame:Show()
-                Gacha:BuildItemPool()  -- Rebuild pool after combat
+                Gacha:BuildItemPool() -- Rebuild pool after combat
                 Gacha:UpdateGachaUI()
                 print("|cff00ff00Combat ended - Gacha reopened!|r")
             end

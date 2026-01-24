@@ -83,8 +83,8 @@ function Gacha:CreateGachaFrame()
     frame.bgBottom:SetGradient("VERTICAL", CreateColor(0.02, 0.05, 0.15, 0), -- Base color at top
     CreateColor(0.4, 0.3, 0.1, 0.8)) -- Golden glow at bottom
 
-    -- Item pool counter
-    frame.poolText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    -- Item pool counter (smaller font for compact display)
+    frame.poolText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.poolText:SetPoint("TOP", frame.title, "BOTTOM", 0, -10)
     frame.poolText:SetText("")
 
@@ -406,10 +406,13 @@ function Gacha:UpdateGachaUI()
         local tierCounts = {}
         local warnings = {}
 
-        for tier, pool in pairs(self.tierPools or {}) do
+        -- Display in order: C -> B -> A -> S -> SS (left to right)
+        local tierOrder = {"C", "B", "A", "S", "SS"}
+        for _, tier in ipairs(tierOrder) do
+            local pool = self.tierPools[tier] or {}
             local count = #pool
             if count > 0 then
-                -- Add count
+                -- Add count with tier color
                 table.insert(tierCounts, string.format("|c%s%s:%d|r", TIER_INFO[tier].hex, tier, count))
 
                 -- Warning if very few items in high tiers
@@ -419,7 +422,8 @@ function Gacha:UpdateGachaUI()
             end
         end
 
-        local poolText = string.format("Item Pool: %d items (%s)", self.totalItems, table.concat(tierCounts, " "))
+        -- Shorter text format: "Pool: X (Tiers)"
+        local poolText = string.format("Pool: %d (%s)", self.totalItems, table.concat(tierCounts, " "))
 
         if #warnings > 0 then
             poolText = poolText .. " " .. table.concat(warnings, "")
@@ -594,30 +598,36 @@ function Gacha:UpdateGachaUI()
             -- Hide spin counter during animation to avoid text overlap
             self.frame.spinCounter:SetText("")
         else
-            -- Check for B-Tier pity (every 10 rolls)
+            -- Always show both pities
             local bTierRemaining = Gacha.bTierPityThreshold - Gacha.bTierPityCount
-            local remaining = Gacha.pityThreshold - Gacha.spinCount
+            local mainRemaining = Gacha.pityThreshold - Gacha.spinCount
 
-            -- Show B-Tier pity if it's closer than the main pity
-            if bTierRemaining <= 3 then
-                -- B-Tier pity is very close
-                self.frame.spinCounter:SetText(string.format("|cff99ccffB-Tier Triple in %d spins!|r", bTierRemaining))
-            elseif remaining <= 10 then
-                -- Show warning when close to main pity
-                self.frame.spinCounter:SetText(string.format("|cffff8800Pity in %d spins!|r", remaining))
-            elseif remaining <= 20 then
-                -- Show when getting closer to main pity
-                self.frame.spinCounter:SetText(string.format("|cffffcc00Spins until pity: %d|r", remaining))
+            -- Build display text with color coding based on proximity
+            local bTierText = ""
+            if bTierRemaining <= 2 then
+                bTierText = string.format("|cffff0000B-Pity: %d|r", bTierRemaining)  -- Red when very close
+            elseif bTierRemaining <= 5 then
+                bTierText = string.format("|cffffcc00B-Pity: %d|r", bTierRemaining)  -- Yellow when close
             else
-                -- Normal display - show both counters and bonus roll chance
-                local bonusText = ""
-                if Gacha.bonusRollChance and Gacha.bonusRollChance > 0 then
-                    bonusText = string.format(" | Bonus: %d%%", Gacha.bonusRollChance)
-                end
-                self.frame.spinCounter:SetText(string.format("|cffccccccB-Tier: %d/%d | Main: %d/%d%s|r",
-                    Gacha.bTierPityCount, Gacha.bTierPityThreshold,
-                    Gacha.spinCount, Gacha.pityThreshold, bonusText))
+                bTierText = string.format("|cff99ccffB-Pity: %d|r", bTierRemaining)  -- Blue normal
             end
+
+            local mainText = ""
+            if mainRemaining <= 5 then
+                mainText = string.format("|cffff0000S-Pity: %d|r", mainRemaining)  -- Red when very close
+            elseif mainRemaining <= 10 then
+                mainText = string.format("|cffffcc00S-Pity: %d|r", mainRemaining)  -- Yellow when close
+            else
+                mainText = string.format("|cffccccccS-Pity: %d|r", mainRemaining)  -- Gray normal
+            end
+
+            -- Add bonus roll chance if active
+            local bonusText = ""
+            if Gacha.bonusRollChance and Gacha.bonusRollChance > 0 then
+                bonusText = string.format(" | |cff00ff00Bonus: %d%%|r", Gacha.bonusRollChance)
+            end
+
+            self.frame.spinCounter:SetText(string.format("%s | %s%s", bTierText, mainText, bonusText))
         end
     end
 end
@@ -629,8 +639,11 @@ function Gacha:UpdateTierDisplay()
     end
 
     local tierChances = {}
-    for tier, weight in pairs(self.tierWeights) do
-        if weight > 0 then
+    -- Display in order: C -> B -> A -> S -> SS (left to right)
+    local tierOrder = {"C", "B", "A", "S", "SS"}
+    for _, tier in ipairs(tierOrder) do
+        local weight = self.tierWeights[tier]
+        if weight and weight > 0 then
             local chance = (weight / self.totalWeight) * 100
             table.insert(tierChances, string.format("|c%s%s:%.1f%%|r", TIER_INFO[tier].hex, tier, chance))
         end
