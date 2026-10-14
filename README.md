@@ -1,6 +1,6 @@
 # CattosShuffle
 
-A high-stakes RNG addon for World of Warcraft Classic Era (1.15.3) that adds excitement and risk to your hardcore adventures through various gambling mechanics.
+A high-stakes RNG addon for World of Warcraft Classic Era and WoW Forever that adds excitement and risk to your hardcore adventures through various gambling mechanics.
 
 ## Features
 
@@ -65,7 +65,7 @@ The addon automatically detects your game client language.
 1. Download the latest release from [GitHub Releases](https://github.com/caaatto/CattosShuffle/releases)
 2. Extract the ZIP file
 3. **IMPORTANT**: Rename the folder from `CattosShuffle-main` or `CattosShuffle-2.1.0` to just `CattosShuffle`
-4. Move the `CattosShuffle` folder to: `World of Warcraft\_classic_era_\Interface\AddOns\`
+4. Move the `CattosShuffle` folder to: `World of Warcraft\_classic_era_\Interface\AddOns\` (for WoW Forever: the `Interface\AddOns\` folder of your Forever installation)
 5. Final path should be: `..\AddOns\CattosShuffle\CattosShuffle.toc`
 6. Restart WoW or type `/reload`
 
@@ -117,7 +117,7 @@ If you enjoy the addon, consider supporting:
 - Access link through addon settings
 
 ## Requirements
-- World of Warcraft Classic Era (1.15.3)
+- World of Warcraft Classic Era (1.15.x) or WoW Forever
 - No additional libraries required
 
 ## Safety Features

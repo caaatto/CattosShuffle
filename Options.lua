@@ -3,6 +3,13 @@
 
 local addonName, CattosShuffle = ...
 _G.CattosCasino = CattosShuffle  -- Keep backwards compatibility
+local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+
+-- Checkbox templates name their label "Text" or "text" depending on the client
+local function SetCheckboxLabel(checkbox, text)
+    local label = checkbox.Text or checkbox.text
+    label:SetText(text)
+end
 
 -- Create the options panel
 function CattosShuffle:CreateOptionsPanel()
@@ -35,7 +42,7 @@ function CattosShuffle:CreateOptionsPanel()
     supportText:SetText(L["SUPPORT_DEVELOPMENT"])
 
     -- Ko-fi Button (opens a dialog)
-    local kofiButton = CreateFrame("Button", nil, panel, "GameMenuButtonTemplate")
+    local kofiButton = CreateFrame("Button", nil, panel, CattosShuffle.BUTTON_TEMPLATE)
     kofiButton:SetSize(150, 25)
     kofiButton:SetPoint("TOPLEFT", supportText, "BOTTOMLEFT", 0, -5)
     kofiButton:SetText("|cff00ff00Support on Ko-fi|r")
@@ -52,67 +59,39 @@ function CattosShuffle:CreateOptionsPanel()
     soundThemeDesc:SetPoint("TOPLEFT", soundThemeLabel, "BOTTOMLEFT", 0, -5)
     soundThemeDesc:SetText(L["SOUND_THEME_DESC"])
 
-    -- Sound Theme Dropdown
-    local dropdown = CreateFrame("Frame", "CattosShuffleSoundDropdown", panel, "UIDropDownMenuTemplate")
-    dropdown:SetPoint("TOPLEFT", soundThemeDesc, "BOTTOMLEFT", -15, -10)
-
     local themes = {
         { value = "trute", text = L["SOUND_THEME_TRUTE"] },
         { value = "default", text = L["SOUND_THEME_DEFAULT"] }
     }
 
-    local function InitializeDropdown(self, level)
-        for _, theme in ipairs(themes) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = theme.text
-            info.value = theme.value
-            info.func = function()
-                CattosShuffleDB.soundTheme = theme.value
-                UIDropDownMenu_SetSelectedValue(dropdown, theme.value)
-                UIDropDownMenu_SetText(dropdown, theme.text)
-                local L = CattosShuffle.L
-                print(string.format(L["SOUND_THEME_CHANGED"], theme.text))
-            end
-            info.checked = (CattosShuffleDB.soundTheme == theme.value)
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end
-
-    UIDropDownMenu_Initialize(dropdown, InitializeDropdown)
-    UIDropDownMenu_SetWidth(dropdown, 200)
-
-    -- Set current value
-    local function UpdateDropdown()
-        local currentTheme = CattosShuffleDB.soundTheme or "trute"
-        for _, theme in ipairs(themes) do
-            if theme.value == currentTheme then
-                UIDropDownMenu_SetSelectedValue(dropdown, currentTheme)
-                UIDropDownMenu_SetText(dropdown, theme.text)
-                break
-            end
-        end
+    local dropdown, UpdateDropdown
+    if UIDropDownMenu_Initialize then
+        dropdown, UpdateDropdown = CattosShuffle:CreateSoundThemeDropdown(panel, soundThemeDesc, themes)
+    else
+        -- No legacy dropdown API (Forever/Mainline): a button that cycles through the themes
+        dropdown, UpdateDropdown = CattosShuffle:CreateSoundThemeCycleButton(panel, soundThemeDesc, themes)
     end
 
     -- Sound Enabled Checkbox
-    local soundCheckbox = CreateFrame("CheckButton", "CattosShuffleSoundCheckbox", panel, "InterfaceOptionsCheckButtonTemplate")
+    local soundCheckbox = CreateFrame("CheckButton", "CattosShuffleSoundCheckbox", panel, CattosShuffle.CHECKBOX_TEMPLATE)
     soundCheckbox:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 15, -20)
-    soundCheckbox.Text:SetText(L["SOUND_ENABLED"])
+    SetCheckboxLabel(soundCheckbox, L["SOUND_ENABLED"])
     soundCheckbox:SetScript("OnClick", function(self)
         CattosShuffleDB.soundEnabled = self:GetChecked()
     end)
 
     -- Auto Mode Checkbox
-    local autoModeCheckbox = CreateFrame("CheckButton", "CattosShuffleAutoModeCheckbox", panel, "InterfaceOptionsCheckButtonTemplate")
+    local autoModeCheckbox = CreateFrame("CheckButton", "CattosShuffleAutoModeCheckbox", panel, CattosShuffle.CHECKBOX_TEMPLATE)
     autoModeCheckbox:SetPoint("TOPLEFT", soundCheckbox, "BOTTOMLEFT", 0, -10)
-    autoModeCheckbox.Text:SetText(L["AUTO_MODE"])
+    SetCheckboxLabel(autoModeCheckbox, L["AUTO_MODE"])
     autoModeCheckbox:SetScript("OnClick", function(self)
         CattosShuffleDB.autoMode = self:GetChecked()
     end)
 
     -- Minimap Button Checkbox
-    local minimapCheckbox = CreateFrame("CheckButton", "CattosShuffleMinimapCheckbox", panel, "InterfaceOptionsCheckButtonTemplate")
+    local minimapCheckbox = CreateFrame("CheckButton", "CattosShuffleMinimapCheckbox", panel, CattosShuffle.CHECKBOX_TEMPLATE)
     minimapCheckbox:SetPoint("TOPLEFT", autoModeCheckbox, "BOTTOMLEFT", 0, -10)
-    minimapCheckbox.Text:SetText("Show minimap button")
+    SetCheckboxLabel(minimapCheckbox, "Show minimap button")
     minimapCheckbox:SetScript("OnClick", function(self)
         if not CattosShuffleDB.minimap then
             CattosShuffleDB.minimap = {}
@@ -140,7 +119,7 @@ function CattosShuffle:CreateOptionsPanel()
     gachaLabel:SetText("|cffffcc00Gacha Settings|r")
 
     -- Gacha Reset Button
-    local gachaResetButton = CreateFrame("Button", nil, panel, "GameMenuButtonTemplate")
+    local gachaResetButton = CreateFrame("Button", nil, panel, CattosShuffle.BUTTON_TEMPLATE)
     gachaResetButton:SetSize(150, 25)
     gachaResetButton:SetPoint("TOPLEFT", gachaLabel, "BOTTOMLEFT", 0, -10)
     gachaResetButton:SetText("Reset Pity Counters")
@@ -158,7 +137,7 @@ function CattosShuffle:CreateOptionsPanel()
     end)
 
     -- Gacha Quick Access
-    local gachaOpenButton = CreateFrame("Button", nil, panel, "GameMenuButtonTemplate")
+    local gachaOpenButton = CreateFrame("Button", nil, panel, CattosShuffle.BUTTON_TEMPLATE)
     gachaOpenButton:SetSize(150, 25)
     gachaOpenButton:SetPoint("LEFT", gachaResetButton, "RIGHT", 10, 0)
     gachaOpenButton:SetText("Open Gacha")
@@ -224,6 +203,7 @@ function CattosShuffle:CreateOptionsPanel()
         -- Newer API (10.0+)
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
         Settings.RegisterAddOnCategory(category)
+        CattosShuffle.settingsCategory = category
     else
         -- Fallback for Classic Era - direct add to InterfaceOptionsFramePanelContainer
         panel.name = "CattosShuffle"
@@ -246,6 +226,76 @@ function CattosShuffle:CreateOptionsPanel()
 
     -- Store reference
     CattosShuffle.optionsPanel = panel
+end
+
+-- Sound theme dropdown (Classic Era UIDropDownMenu API)
+-- Returns the dropdown frame and a function that shows the current theme
+function CattosShuffle:CreateSoundThemeDropdown(panel, anchor, themes)
+    local dropdown = CreateFrame("Frame", "CattosShuffleSoundDropdown", panel, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", -15, -10)
+
+    local function InitializeDropdown(self, level)
+        for _, theme in ipairs(themes) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = theme.text
+            info.value = theme.value
+            info.func = function()
+                CattosShuffleDB.soundTheme = theme.value
+                UIDropDownMenu_SetSelectedValue(dropdown, theme.value)
+                UIDropDownMenu_SetText(dropdown, theme.text)
+                local L = CattosShuffle.L
+                print(string.format(L["SOUND_THEME_CHANGED"], theme.text))
+            end
+            info.checked = (CattosShuffleDB.soundTheme == theme.value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+
+    UIDropDownMenu_Initialize(dropdown, InitializeDropdown)
+    UIDropDownMenu_SetWidth(dropdown, 200)
+
+    -- Set current value
+    local function UpdateDropdown()
+        local currentTheme = CattosShuffleDB.soundTheme or "trute"
+        for _, theme in ipairs(themes) do
+            if theme.value == currentTheme then
+                UIDropDownMenu_SetSelectedValue(dropdown, currentTheme)
+                UIDropDownMenu_SetText(dropdown, theme.text)
+                break
+            end
+        end
+    end
+
+    return dropdown, UpdateDropdown
+end
+
+-- Sound theme selector for clients without UIDropDownMenu: each click picks the next theme
+function CattosShuffle:CreateSoundThemeCycleButton(panel, anchor, themes)
+    local button = CreateFrame("Button", nil, panel, CattosShuffle.BUTTON_TEMPLATE)
+    button:SetSize(200, 25)
+    button:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
+
+    local function CurrentIndex()
+        for i, theme in ipairs(themes) do
+            if theme.value == (CattosShuffleDB.soundTheme or "trute") then
+                return i
+            end
+        end
+        return 1
+    end
+
+    local function UpdateButton()
+        button:SetText(themes[CurrentIndex()].text)
+    end
+
+    button:SetScript("OnClick", function()
+        local theme = themes[CurrentIndex() % #themes + 1]
+        CattosShuffleDB.soundTheme = theme.value
+        UpdateButton()
+        print(string.format(CattosShuffle.L["SOUND_THEME_CHANGED"], theme.text))
+    end)
+
+    return button, UpdateButton
 end
 
 -- Ko-fi Link Dialog

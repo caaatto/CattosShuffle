@@ -95,6 +95,12 @@ minimapButton:SetScript("OnClick", function(self, button)
     if button == "LeftButton" then
         CattosShuffle:Toggle()
     elseif button == "RightButton" then
+        -- Newer Settings panel (Forever/Mainline)
+        if CattosShuffle.settingsCategory and Settings and Settings.OpenToCategory then
+            Settings.OpenToCategory(CattosShuffle.settingsCategory:GetID())
+            return
+        end
+
         -- Open Interface Options and navigate to our addon
         -- First, open the game menu if needed
         if not GameMenuFrame or not GameMenuFrame:IsShown() then

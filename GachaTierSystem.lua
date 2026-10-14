@@ -3,6 +3,7 @@
 -- Version: 2.0.0
 local addonName, CattosShuffle = ...
 local L = CattosShuffle.L
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
 
 -- Initialize Gacha Module
 CattosShuffle.Gacha = {}
@@ -605,47 +606,89 @@ function Gacha:GetRandomTier()
     return "C" -- Fallback
 end
 
--- Get random item from tier
-function Gacha:GetRandomItemFromTier(tier, excludeList)
-    local pool = self.tierPools[tier]
-    if not pool or #pool == 0 then
-        -- If tier is empty, downgrade to next tier
-        if tier == "SS" then
-            return self:GetRandomItemFromTier("S", excludeList)
-        elseif tier == "S" then
-            return self:GetRandomItemFromTier("A", excludeList)
-        elseif tier == "A" then
-            return self:GetRandomItemFromTier("B", excludeList)
-        elseif tier == "B" then
-            return self:GetRandomItemFromTier("C", excludeList)
-        else
-            return nil
+-- Unique key for one physical stack (bag slot or equipment slot)
+function Gacha:GetItemKey(item)
+    if item.location == "equipped" then
+        return "equipped:" .. tostring(item.slotId)
+    end
+    return tostring(item.bag) .. ":" .. tostring(item.slot)
+end
+
+-- How many of this stack are left after the deletions already rolled (usedAmounts: key -> amount)
+function Gacha:GetRemainingCount(item, usedAmounts)
+    local total = item.stackCount or 1
+    if not usedAmounts then
+        return total
+    end
+    return total - (usedAmounts[self:GetItemKey(item)] or 0)
+end
+
+-- Pick the victim of a matched pull and roll how many to delete.
+-- A stack can only be hit again while part of it is still left.
+-- Returns victim, victimSlot, deleteCount (nil if nothing is left to delete).
+function Gacha:PickVictim(items, usedAmounts)
+    local candidates = {}
+    for slot = 1, 3 do
+        local item = items[slot]
+        if item and self:GetRemainingCount(item, usedAmounts) > 0 then
+            table.insert(candidates, slot)
         end
+    end
+    if #candidates == 0 then
+        return nil
+    end
+
+    local victimSlot = candidates[math.random(1, #candidates)]
+    local victim = items[victimSlot]
+    local remaining = self:GetRemainingCount(victim, usedAmounts)
+    local deleteCount = remaining > 1 and math.random(1, remaining) or 1
+
+    local key = self:GetItemKey(victim)
+    usedAmounts[key] = (usedAmounts[key] or 0) + deleteCount
+
+    return victim, victimSlot, deleteCount
+end
+
+local TIER_DOWNGRADE = { SS = "S", S = "A", A = "B", B = "C" }
+
+-- Get random item from tier
+-- excludeList: items to avoid if possible (soft)
+-- usedAmounts: amounts already marked for deletion; fully deleted stacks are never returned (hard)
+function Gacha:GetRandomItemFromTier(tier, excludeList, usedAmounts)
+    local pool = {}
+    for _, item in ipairs(self.tierPools[tier] or {}) do
+        if self:GetRemainingCount(item, usedAmounts) > 0 then
+            table.insert(pool, item)
+        end
+    end
+
+    if #pool == 0 then
+        -- If tier is empty, downgrade to next tier
+        local lowerTier = TIER_DOWNGRADE[tier]
+        if lowerTier then
+            return self:GetRandomItemFromTier(lowerTier, excludeList, usedAmounts)
+        end
+        return nil
     end
 
     -- If we have an exclude list, filter the pool
     if excludeList and next(excludeList) then
+        local excludedKeys = {}
+        for _, excluded in pairs(excludeList) do
+            excludedKeys[self:GetItemKey(excluded)] = true
+        end
+
         local availablePool = {}
         for _, item in ipairs(pool) do
-            local isExcluded = false
-            for _, excluded in pairs(excludeList) do
-                if excluded and item and excluded.itemId == item.itemId and excluded.bag == item.bag and excluded.slot ==
-                    item.slot then
-                    isExcluded = true
-                    break
-                end
-            end
-            if not isExcluded and not item.isDeleted then
+            if not excludedKeys[self:GetItemKey(item)] then
                 table.insert(availablePool, item)
             end
         end
 
-        -- If all items are excluded, just return a random one anyway
-        if #availablePool == 0 then
-            return pool[math.random(1, #pool)]
+        -- If all items are excluded, fall back to any stack that still has items left
+        if #availablePool > 0 then
+            return availablePool[math.random(1, #availablePool)]
         end
-
-        return availablePool[math.random(1, #availablePool)]
     end
 
     return pool[math.random(1, #pool)]
@@ -677,20 +720,10 @@ function Gacha:Pull10Fast()
 
     local results = {
         matches = {}, -- Store which pulls had matches
-        deletedItems = {}, -- Track items already marked for deletion
+        usedAmounts = {}, -- Amount already marked for deletion per stack
         pulledItems = {} -- Track ALL items that have been pulled (to prevent duplicates)
     }
-
-    -- Helper function to check if item was already pulled
-    local function wasItemAlreadyPulled(item, pulledList)
-        for _, pulled in ipairs(pulledList) do
-            -- Check if same item (by ID and location)
-            if pulled.itemId == item.itemId and pulled.bag == item.bag and pulled.slot == item.slot then
-                return true
-            end
-        end
-        return false
-    end
+    local pulledKeys = {}
 
     -- Process all 10 pulls at once
     for pullNum = 1, 10 do
@@ -719,8 +752,8 @@ function Gacha:Pull10Fast()
         self.bTierPityCount = self.bTierPityCount + 1
         CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
 
-        -- Increment bonus roll chance for EACH pull (5% per pull)
-        self.bonusRollChance = (self.bonusRollChance or 0) + self.bonusRollBaseIncrement
+        -- Increment bonus roll chance for EACH pull (5% per pull, capped at 100%)
+        self.bonusRollChance = math.min((self.bonusRollChance or 0) + self.bonusRollBaseIncrement, 100)
         CattosShuffleDB.gachaBonusRollChance = self.bonusRollChance
 
         -- Get 3 random tiers/items for this pull
@@ -732,21 +765,8 @@ function Gacha:Pull10Fast()
         for slot = 1, 3 do
             local tier = forcedPityTier or self:GetRandomTier()
 
-            -- Create combined exclude list (deleted items + already pulled items)
-            local excludeList = {}
-
-            -- Add deleted items
-            for _, item in ipairs(results.deletedItems) do
-                table.insert(excludeList, item)
-            end
-
-            -- Add already pulled items (to prevent duplicates of single items)
-            for _, item in ipairs(results.pulledItems) do
-                table.insert(excludeList, item)
-            end
-
-            -- Get random item excluding already used ones
-            local item = self:GetRandomItemFromTier(tier, excludeList)
+            -- Avoid already pulled items if possible; fully deleted stacks are never pulled again
+            local item = self:GetRandomItemFromTier(tier, results.pulledItems, results.usedAmounts)
 
             pullResult.tiers[slot] = tier
             pullResult.items[slot] = item
@@ -755,8 +775,10 @@ function Gacha:Pull10Fast()
         end
 
         -- Now add all 3 items from this pull to the pulledItems list
-        for _, item in ipairs(pullResult.items) do
-            if item and not wasItemAlreadyPulled(item, results.pulledItems) and not item.isDeleted then
+        for slot = 1, 3 do
+            local item = pullResult.items[slot]
+            if item and not pulledKeys[self:GetItemKey(item)] then
+                pulledKeys[self:GetItemKey(item)] = true
                 table.insert(results.pulledItems, item)
             end
         end
@@ -809,52 +831,14 @@ function Gacha:Pull10Fast()
                 CattosShuffleDB.gachaSpinCount = 0
             end
 
-            -- Choose random item from the matched tier for deletion
-            -- But make sure we don't choose an already deleted item
-            local availableVictims = {}
-            for _, item in ipairs(pullResult.items) do
-                if item then
-                    local alreadyDeleted = false
-                    for _, deleted in pairs(results.deletedItems) do
-                        if deleted and deleted.itemId == item.itemId and deleted.bag == item.bag and deleted.slot ==
-                            item.slot then
-                            alreadyDeleted = true
-                            break
-                        end
-                    end
-                    if not alreadyDeleted then
-                        table.insert(availableVictims, item)
-                    end
-                end
-            end
-
-            local victim
-            if #availableVictims > 0 then
-                victim = availableVictims[math.random(1, #availableVictims)]
-            else
-                -- Fallback if somehow all are deleted (shouldn't happen)
-                victim = pullResult.items[math.random(1, 3)]
-            end
-
-            -- Determine delete count for stackable items
-            local deleteCount = 1
-            if victim and victim.stackCount and victim.stackCount > 1 then
-                deleteCount = math.random(1, victim.stackCount)
-            end
-
-            -- Add to deleted items list IMMEDIATELY
-            if victim then
-                table.insert(results.deletedItems, victim)
-
-                -- Also mark this specific item as "used" so it can't appear again
-                victim.isDeleted = true
-            end
+            -- Choose random victim; a stack can only be hit again if part of it is still left
+            local victim, _, deleteCount = self:PickVictim(pullResult.items, results.usedAmounts)
 
             -- Override the result to mark it for deletion
             results[pullNum] = {
                 tier = tier1, -- All 3 match, so tier1 = tier2 = tier3
                 item = victim,
-                shouldDelete = true,
+                shouldDelete = victim ~= nil,
                 deleteCount = deleteCount, -- Add the delete count
                 allTiers = string.format("%s-%s-%s", tier1, tier2, tier3)
             }
@@ -876,25 +860,6 @@ function Gacha:Pull10Fast()
     -- Check for bonus rolls after x10 pull
     -- Each pull increments bonus chance by 5%, so x10 = 50% added
     self:CheckBonusRoll()
-
-    -- Clean up temporary isDeleted flags from all items in the pool
-    -- This prevents items from being permanently marked as deleted
-    for _, tierPool in pairs(self.tierPools) do
-        if tierPool then
-            for _, item in ipairs(tierPool) do
-                if item and item.isDeleted then
-                    item.isDeleted = nil -- Remove the temporary flag
-                end
-            end
-        end
-    end
-
-    -- Also clean up from the main item pool
-    for _, item in ipairs(self.itemPool) do
-        if item and item.isDeleted then
-            item.isDeleted = nil
-        end
-    end
 
     -- Update UI
     if self.UpdateUI then
@@ -1176,8 +1141,8 @@ function Gacha:OnPullComplete()
     self.bTierPityCount = self.bTierPityCount + 1
     CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
 
-    -- Increment bonus roll chance (5% per roll, accumulates)
-    self.bonusRollChance = (self.bonusRollChance or 0) + self.bonusRollBaseIncrement
+    -- Increment bonus roll chance (5% per roll, accumulates, capped at 100%)
+    self.bonusRollChance = math.min((self.bonusRollChance or 0) + self.bonusRollBaseIncrement, 100)
     CattosShuffleDB.gachaBonusRollChance = self.bonusRollChance
 
     -- Check for pending pity resets from DoPull

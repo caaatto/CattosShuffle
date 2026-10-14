@@ -4,6 +4,7 @@
 
 local addonName, CattosShuffle = ...
 local L = CattosShuffle.L
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
 
 -- Module initialization
 CattosShuffle.RussianRoulette = {}

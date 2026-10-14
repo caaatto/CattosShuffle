@@ -180,7 +180,7 @@ function Gacha:CreateCompactX10Frame()
     frame.instructText:SetText("")
 
     -- Close button (disabled during animation)
-    frame.closeButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.closeButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.closeButton:SetSize(100, 30)
     frame.closeButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 20)  -- Slightly higher
     frame.closeButton:SetText("Close")
@@ -210,6 +210,7 @@ end
 -- Calculate all x10 results (copied from Pull10Fast logic)
 function Gacha:CalculateCompactX10Results()
     local results = {}
+    local usedAmounts = {} -- Amount already marked for deletion per stack
 
     for pullNum = 1, 10 do
         -- Pre-calculate counters for pity
@@ -234,8 +235,8 @@ function Gacha:CalculateCompactX10Results()
         CattosShuffleDB.gachaSpinCount = self.spinCount
         CattosShuffleDB.gachaBTierPityCount = self.bTierPityCount
 
-        -- Increment bonus roll chance for EACH pull (5% per pull)
-        self.bonusRollChance = (self.bonusRollChance or 0) + self.bonusRollBaseIncrement
+        -- Increment bonus roll chance for EACH pull (5% per pull, capped at 100%)
+        self.bonusRollChance = math.min((self.bonusRollChance or 0) + self.bonusRollBaseIncrement, 100)
         CattosShuffleDB.gachaBonusRollChance = self.bonusRollChance
 
         -- Generate 3 slots for this pull
@@ -250,7 +251,8 @@ function Gacha:CalculateCompactX10Results()
 
         for slot = 1, 3 do
             local tier = forcedPityTier or self:GetRandomTier()
-            local item = self:GetRandomItemFromTier(tier)
+            -- Fully deleted stacks can't be pulled again
+            local item = self:GetRandomItemFromTier(tier, nil, usedAmounts)
 
             pullResult.tiers[slot] = tier
             pullResult.items[slot] = item
@@ -274,17 +276,9 @@ function Gacha:CalculateCompactX10Results()
                 CattosShuffleDB.gachaSpinCount = 0
             end
 
-            -- Pick random victim from the 3
-            local victimSlot = math.random(1, 3)
-            pullResult.victimSlot = victimSlot
-            pullResult.victim = pullResult.items[victimSlot]
-
-            -- Calculate delete count for stacks
-            if pullResult.victim and pullResult.victim.stackCount and pullResult.victim.stackCount > 1 then
-                pullResult.deleteCount = math.random(1, pullResult.victim.stackCount)
-            else
-                pullResult.deleteCount = 1
-            end
+            -- Pick random victim from the 3; a stack can only be hit again if part of it is still left
+            pullResult.victim, pullResult.victimSlot, pullResult.deleteCount =
+                self:PickVictim(pullResult.items, usedAmounts)
         else
             -- Check for shards (S/SS without match)
             for slot = 1, 3 do
@@ -397,12 +391,13 @@ function Gacha:ProcessX10ForDisplay(results)
         local tier1 = result.tiers[1]
         local tier2 = result.tiers[2]
         local tier3 = result.tiers[3]
-        local hasMatch = (tier1 == tier2 and tier2 == tier3)
+        -- No victim means every stack in this pull is already fully marked for deletion
+        local hasMatch = (tier1 == tier2 and tier2 == tier3) and result.victim ~= nil
 
         if hasMatch then
             -- Match! Show the matched tier and victim item
             displayItem.tier = tier1
-            displayItem.item = result.victim or result.items[result.victimSlot or math.random(1,3)]
+            displayItem.item = result.victim
             displayItem.hasMatch = true
             displayItem.matchText = string.format("|cffff0000%s TRIPLE!|r", tier1)
             displayItem.deleteCount = result.deleteCount
@@ -815,29 +810,6 @@ function Gacha:OnCompactX10AnimationComplete(displayResults)
     -- Check for bonus roll after x10 animation completes
     -- Each pull already incremented bonus chance by 5%, so x10 = 50% added
     self:CheckBonusRoll()
-
-    -- Clean up temporary isDeleted flags from all items in the pool
-    -- This prevents items from being permanently marked as deleted
-    if self.tierPools then
-        for _, tierPool in pairs(self.tierPools) do
-            if tierPool then
-                for _, item in ipairs(tierPool) do
-                    if item and item.isDeleted then
-                        item.isDeleted = nil  -- Remove the temporary flag
-                    end
-                end
-            end
-        end
-    end
-
-    -- Also clean up from the main item pool
-    if self.itemPool then
-        for _, item in ipairs(self.itemPool) do
-            if item and item.isDeleted then
-                item.isDeleted = nil
-            end
-        end
-    end
 
     -- Update main UI
     if self.UpdateUI then

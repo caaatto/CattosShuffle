@@ -3,6 +3,9 @@
 
 local addonName, CattosShuffle = ...
 local L = CattosShuffle.L
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+local PickupContainerItem = C_Container and C_Container.PickupContainerItem or PickupContainerItem
+local SplitContainerItem = C_Container and C_Container.SplitContainerItem or SplitContainerItem
 
 -- Ammo types in Classic Era
 local AMMO_TYPES = {

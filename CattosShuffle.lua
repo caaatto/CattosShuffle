@@ -8,6 +8,24 @@ _G.CattosShuffle = CattosShuffle  -- Keep backwards compatibility
 
 -- Get localization
 local L = CattosShuffle.L
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+
+-- Pick the first XML template this client knows (Classic Era vs. Forever/Mainline)
+local function FirstExistingTemplate(...)
+    if not (C_XMLUtil and C_XMLUtil.GetTemplateInfo) then
+        return (...)
+    end
+    for i = 1, select("#", ...) do
+        local template = select(i, ...)
+        if C_XMLUtil.GetTemplateInfo(template) then
+            return template
+        end
+    end
+    return select(select("#", ...), ...)
+end
+
+CattosShuffle.BUTTON_TEMPLATE = FirstExistingTemplate("GameMenuButtonTemplate", "UIPanelButtonTemplate")
+CattosShuffle.CHECKBOX_TEMPLATE = FirstExistingTemplate("InterfaceOptionsCheckButtonTemplate", "UICheckButtonTemplate")
 
 -- Slot definitions with localized names
 CattosShuffle.SHEET_SLOTS = {

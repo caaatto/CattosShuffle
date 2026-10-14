@@ -4,6 +4,8 @@
 
 local addonName, CattosShuffle = ...
 local L = CattosShuffle.L
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
 
 -- UI Constants
 local SLOT_SIZE = 40
@@ -62,7 +64,7 @@ function CattosShuffle:InitializeUI()
     self:CreateActionButtons()
 
     -- Gacha Button (golden gacha style!)
-    local gachaButton = CreateFrame("Button", nil, self.frame, "GameMenuButtonTemplate")
+    local gachaButton = CreateFrame("Button", nil, self.frame, CattosShuffle.BUTTON_TEMPLATE)
     gachaButton:SetSize(140, 35)
     gachaButton:SetPoint("TOP", self.frame, "TOP", 0, -45)
     gachaButton:SetText("|cffffcc00[ GACHA ]|r")
@@ -878,7 +880,7 @@ function CattosShuffle:ShowStatsLossPopup(slotIndex, itemName)
         end)
 
         -- OK Button zum Bestätigen
-        frame.okBtn = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+        frame.okBtn = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
         frame.okBtn:SetPoint("BOTTOM", frame, "BOTTOM", 0, 20)
         frame.okBtn:SetSize(100, 25)
         frame.okBtn:SetText("OK")
@@ -1016,7 +1018,7 @@ function CattosShuffle:ShowBagContentsPopup(bagIndex)
         end)
 
         -- OK Button
-        frame.okBtn = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+        frame.okBtn = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
         frame.okBtn:SetPoint("BOTTOM", frame, "BOTTOM", 0, 20)
         frame.okBtn:SetSize(100, 25)
         frame.okBtn:SetText("OK")

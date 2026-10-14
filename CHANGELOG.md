@@ -1,5 +1,20 @@
 # CattosShuffle Changelog
 
+## Version 2.6.0
+
+### WoW Forever Support
+- Added `CattosShuffle_Forever.toc` (Interface 16001) so the addon loads in WoW Forever
+- Classic Era TOC updated to Interface 11509
+- Uses the modern `C_AddOns`, `C_Container` and `C_Item` APIs when available, with fallbacks for older clients
+- Buttons, checkboxes and the sound theme selector fall back to templates/widgets that exist in the Forever client
+- Minimap right-click opens the new Settings panel directly on clients that have it
+
+### Bug Fixes
+- Fixed Lua error on login (`UI.lua:45: attempt to call a nil value`) caused by the removed `GetAddOnMetadata` global
+- Fixed possible Lua errors when deleting stacks or ammo on clients without the old container functions
+- **x10 Pull:** The same item can no longer be marked for deletion twice. A stack can only be hit again if part of it is still left, and the second delete amount is rolled from what remains
+- Two identical equipped items (e.g. two of the same ring) are no longer treated as the same item
+
 ## Version 2.5.0
 
 ### New Features

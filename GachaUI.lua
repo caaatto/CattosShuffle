@@ -266,7 +266,7 @@ function Gacha:CreateGachaFrame()
     end
 
     -- PULL x1 button (gacha style)
-    frame.pullButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.pullButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.pullButton:SetSize(120, 45)
     frame.pullButton:SetPoint("BOTTOM", frame, "BOTTOM", -70, 75) -- Moved left to make room for x10
     frame.pullButton:SetText("[ PULL x1 ]")
@@ -278,7 +278,7 @@ function Gacha:CreateGachaFrame()
     end)
 
     -- PULL x10 button (bulk pull)
-    frame.pull10Button = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.pull10Button = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.pull10Button:SetSize(120, 45)
     frame.pull10Button:SetPoint("BOTTOM", frame, "BOTTOM", 70, 75) -- Right side
     frame.pull10Button:SetText("[ PULL x10 ]")
@@ -310,7 +310,7 @@ function Gacha:CreateGachaFrame()
     frame.spinCounter:SetText("")
 
     -- Back button
-    frame.backButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.backButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.backButton:SetSize(80, 25)
     frame.backButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -35, -35)
     frame.backButton:SetText("Back")
@@ -324,7 +324,7 @@ function Gacha:CreateGachaFrame()
     end)
 
     -- Help button (under Back)
-    frame.helpButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.helpButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.helpButton:SetSize(80, 25)
     frame.helpButton:SetPoint("TOP", frame.backButton, "BOTTOM", 0, -5)
     frame.helpButton:SetText("Help")
@@ -334,7 +334,7 @@ function Gacha:CreateGachaFrame()
     end)
 
     -- Legend button (shows tier info)
-    frame.legendButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.legendButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.legendButton:SetSize(80, 25)
     frame.legendButton:SetPoint("TOPLEFT", frame, "TOPLEFT", 35, -35)
     frame.legendButton:SetText("Legend")
@@ -344,7 +344,7 @@ function Gacha:CreateGachaFrame()
     end)
 
     -- Item Preview button (shows items in each tier)
-    frame.previewButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.previewButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.previewButton:SetSize(80, 25)
     frame.previewButton:SetPoint("TOP", frame.legendButton, "BOTTOM", 0, -5)
     frame.previewButton:SetText("Items")
@@ -870,7 +870,10 @@ function Gacha:ShowTierItems()
                 -- Allow shift-click to link in chat
                 itemButton:SetScript("OnClick", function(self, button)
                     if button == "LeftButton" and IsShiftKeyDown() and item.link then
-                        if ChatEdit_GetActiveWindow() then
+                        if not (ChatEdit_GetActiveWindow and ChatFrame_OpenChat) then
+                            -- Forever/Mainline: let the default UI handle chat links
+                            HandleModifiedItemClick(item.link)
+                        elseif ChatEdit_GetActiveWindow() then
                             ChatEdit_InsertLink(item.link)
                         else
                             ChatFrame_OpenChat(item.link)
@@ -1187,7 +1190,7 @@ function Gacha:CreateX10ResultsFrame()
     frame.instructText:SetTextColor(1, 0.2, 0.2)
 
     -- Close button
-    frame.closeButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.closeButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.closeButton:SetSize(100, 30)
     frame.closeButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 15)
     frame.closeButton:SetText("Close")

@@ -85,7 +85,7 @@ function RR:CreateSlotMachineFrame()
     end
 
     -- Spin button
-    frame.spinButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.spinButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.spinButton:SetSize(120, 40)
     frame.spinButton:SetPoint("BOTTOM", frame, "BOTTOM", 0, 40)
     frame.spinButton:SetText("SPIN!")
@@ -99,7 +99,7 @@ function RR:CreateSlotMachineFrame()
     frame.infoText:SetText("|cffccccccThree matching qualities = Delete random item!|r")
 
     -- Back button to return to main UI
-    frame.backButton = CreateFrame("Button", nil, frame, "GameMenuButtonTemplate")
+    frame.backButton = CreateFrame("Button", nil, frame, CattosShuffle.BUTTON_TEMPLATE)
     frame.backButton:SetSize(80, 25)
     frame.backButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -35, -35)
     frame.backButton:SetText("Back")
@@ -304,7 +304,7 @@ function CattosShuffle:AddRussianRouletteTab()
     if not self.frame then return end
 
     -- Create tab button
-    local tabButton = CreateFrame("Button", nil, self.frame, "GameMenuButtonTemplate")
+    local tabButton = CreateFrame("Button", nil, self.frame, CattosShuffle.BUTTON_TEMPLATE)
     tabButton:SetSize(100, 25)
     tabButton:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -10, -35)
     tabButton:SetText("Roulette")
@@ -317,7 +317,7 @@ function CattosShuffle:AddRussianRouletteTab()
 
     -- Add return button to roulette frame
     if RR.slotFrame then
-        local returnButton = CreateFrame("Button", nil, RR.slotFrame, "GameMenuButtonTemplate")
+        local returnButton = CreateFrame("Button", nil, RR.slotFrame, CattosShuffle.BUTTON_TEMPLATE)
         returnButton:SetSize(80, 25)
         returnButton:SetPoint("TOPRIGHT", RR.slotFrame, "TOPRIGHT", -30, -35)
         returnButton:SetText("Back")
